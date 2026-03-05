@@ -18,11 +18,54 @@ load_dotenv()
 # (Opcional) Gemini
 import google.generativeai as genai
 
-# ✅ TTS gratis local (Windows SAPI)
-import pyttsx3
+# ✅ TTS gratis local (Windows SAPI) (OPCIONAL)
+# En Render (Linux) normalmente NO hay motor de voz, así que lo apagamos por defecto.
+PYTTSX3_ENABLED = os.getenv("PYTTSX3_ENABLED", "0").strip() == "1"
 
-# STT local (Whisper)
-from faster_whisper import WhisperModel
+pyttsx3 = None
+engine = None
+
+if PYTTSX3_ENABLED:
+    try:
+        import pyttsx3  # <-- solo importa si está habilitado
+        engine = pyttsx3.init()
+        engine.setProperty("rate", 175)
+        engine.setProperty("volume", 1.0)
+
+        # Intentar escoger voz español (si existe)
+        try:
+            voices = engine.getProperty("voices")
+            for v in voices:
+                name = (getattr(v, "name", "") or "").lower()
+                vid  = (getattr(v, "id", "") or "").lower()
+                if "spanish" in name or "es_" in vid or "es-" in vid or "spanish" in vid:
+                    engine.setProperty("voice", v.id)
+                    break
+        except Exception:
+            pass
+
+    except Exception as e:
+        print("⚠️ pyttsx3 no disponible. TTS local desactivado:", e)
+        pyttsx3 = None
+        engine = None
+
+
+# ✅ STT local (Whisper) (OPCIONAL / pesado)
+# Importarlo al arranque puede tumbar Render por RAM/tiempo. Mejor lazy-load.
+WHISPER_MODEL_NAME = os.getenv("WHISPER_MODEL", "small").strip()
+whisper_model = None
+
+def get_whisper():
+    global whisper_model
+    if whisper_model is None:
+        try:
+            from faster_whisper import WhisperModel
+            whisper_model = WhisperModel(WHISPER_MODEL_NAME, device="cpu", compute_type="int8")
+        except Exception as e:
+            print("⚠️ Whisper no disponible:", e)
+            whisper_model = None
+    return whisper_model
+
 
 # ===============================
 # ✅ AGENDA / RECORDATORIOS (APSCHEDULER)
@@ -68,6 +111,7 @@ TAVILY_SEARCH_URL = "https://api.tavily.com/search"
 # 📅 n8n Webhook (Google Calendar)
 # ====================
 N8N_CAL_WEBHOOK = os.getenv("N8N_CAL_WEBHOOK", "http://localhost:5678/webhook/spectra-teams").strip()
+
 # ====================
 # 🗑️ n8n Webhooks (Delete Calendar)
 # ====================
@@ -80,20 +124,26 @@ N8N_DEL_ID_WEBHOOK = os.getenv(
     "N8N_DEL_ID_WEBHOOK",
     "http://localhost:5678/webhook/spectra-delete-id"
 ).strip()
+
 DEFAULT_EVENT_MINUTES = int(os.getenv("DEFAULT_EVENT_MINUTES", "60"))
 
 
 # ====================
 # 🌐 Gemini (online) (OPCIONAL)
 # ====================
+# OJO: si en Render tienes seteada GEMINI_API_KEY, va a intentar importar.
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
 
+gemini_model = None
 if GEMINI_API_KEY:
-    import google.generativeai as genai
-    genai.configure(api_key=GEMINI_API_KEY)
-    gemini_model = genai.GenerativeModel("gemini-1.5-flash")
-else:
-    gemini_model = None
+    try:
+        import google.generativeai as genai  # (deprecated warning, pero sirve)
+        genai.configure(api_key=GEMINI_API_KEY)
+        gemini_model = genai.GenerativeModel("gemini-1.5-flash")
+    except Exception as e:
+        print("⚠️ Gemini desactivado (faltan librerías o config):", e)
+        gemini_model = None
+
 
 ESP32_TTS_URL = "http://192.168.100.149/say"
 
@@ -102,10 +152,6 @@ os.makedirs(TMP_DIR, exist_ok=True)
 
 TTS_LAST_WAV = os.path.join(TMP_DIR, "tts_last.wav")
 
-# Whisper
-WHISPER_MODEL_NAME = os.getenv("WHISPER_MODEL", "small").strip()
-whisper_model = WhisperModel(WHISPER_MODEL_NAME, device="cpu", compute_type="int8")
-
 # ====================
 # 🔥 Firebase RTDB (REST)
 # ====================
@@ -113,743 +159,6 @@ FIREBASE_REST_BASE = os.getenv(
     "FIREBASE_REST_BASE",
     "https://sensores-6d2ce-default-rtdb.firebaseio.com"
 ).strip()
-
-# =========================
-# ✅ MULTI-CHAT (estilo ChatGPT)
-# =========================
-TZ = ZoneInfo("America/Guayaquil")
-
-CHATS_DIR = os.getenv("CHATS_DIR", "chats").strip()
-os.makedirs(CHATS_DIR, exist_ok=True)
-
-CHATS_INDEX_FILE = os.path.join(CHATS_DIR, "chats_index.json")
-
-CHAT_MAX_LINES = int(os.getenv("CHAT_MAX_LINES", "1500"))
-
-
-def _now_iso() -> str:
-    return datetime.now(TZ).isoformat()
-
-
-def _safe_load_json(path: str, default):
-    try:
-        if not os.path.exists(path):
-            return default
-        with open(path, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except:
-        return default
-
-
-def _safe_save_json(path: str, data):
-    try:
-        with open(path, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
-    except:
-        pass
-
-
-def _load_chats_index() -> list:
-    data = _safe_load_json(CHATS_INDEX_FILE, [])
-    return data if isinstance(data, list) else []
-
-
-def _save_chats_index(items: list):
-    _safe_save_json(CHATS_INDEX_FILE, items if isinstance(items, list) else [])
-
-
-def _sanitize_chat_id(chat_id: str) -> str:
-    chat_id = (chat_id or "").strip()
-    chat_id = re.sub(r"[^a-zA-Z0-9_\-]", "", chat_id)
-    return chat_id or "default"
-
-
-def _chat_file(chat_id: str) -> str:
-    cid = _sanitize_chat_id(chat_id)
-    return os.path.join(CHATS_DIR, f"{cid}.jsonl")
-
-
-def _ensure_chat_exists(chat_id: str, title: Optional[str] = None) -> dict:
-    cid = _sanitize_chat_id(chat_id)
-    idx = _load_chats_index()
-
-    found = None
-    for it in idx:
-        if it.get("id") == cid:
-            found = it
-            break
-
-    now = _now_iso()
-
-    if not found:
-        found = {
-            "id": cid,
-            "title": (title or "Nuevo chat").strip()[:60],
-            "created_at": now,
-            "updated_at": now,
-        }
-        idx.append(found)
-        _save_chats_index(idx)
-
-        # crea archivo vacío si no existe
-        try:
-            path = _chat_file(cid)
-            if not os.path.exists(path):
-                with open(path, "a", encoding="utf-8") as f:
-                    f.write("")
-        except:
-            pass
-
-    return found
-
-
-def _touch_chat(chat_id: str, title_if_empty: Optional[str] = None):
-    cid = _sanitize_chat_id(chat_id)
-    idx = _load_chats_index()
-    now = _now_iso()
-    changed = False
-
-    for it in idx:
-        if it.get("id") == cid:
-            it["updated_at"] = now
-            if title_if_empty and (not it.get("title") or it.get("title") == "Nuevo chat"):
-                it["title"] = title_if_empty.strip()[:60]
-            changed = True
-            break
-
-    if not changed:
-        _ensure_chat_exists(cid, title=title_if_empty or "Nuevo chat")
-        return
-
-    _save_chats_index(idx)
-
-
-def list_chats() -> list:
-    idx = _load_chats_index()
-    idx.sort(key=lambda x: x.get("updated_at", ""), reverse=True)
-    return idx
-
-
-def create_chat(title: Optional[str] = None) -> dict:
-    cid = uuid.uuid4().hex[:10]
-    item = _ensure_chat_exists(cid, title=title or "Nuevo chat")
-    return item
-
-
-def rename_chat(chat_id: str, new_title: str) -> dict:
-    cid = _sanitize_chat_id(chat_id)
-    idx = _load_chats_index()
-    now = _now_iso()
-
-    for it in idx:
-        if it.get("id") == cid:
-            it["title"] = (new_title or "").strip()[:60] or it.get("title", "Chat")
-            it["updated_at"] = now
-            _save_chats_index(idx)
-            return it
-
-    raise HTTPException(status_code=404, detail="chat no encontrado")
-
-
-def delete_chat(chat_id: str) -> dict:
-    cid = _sanitize_chat_id(chat_id)
-
-    # borra archivo
-    try:
-        path = _chat_file(cid)
-        if os.path.exists(path):
-            os.remove(path)
-    except:
-        pass
-
-    # borra del índice
-    idx = _load_chats_index()
-    idx2 = [x for x in idx if x.get("id") != cid]
-    _save_chats_index(idx2)
-
-    return {"ok": True, "deleted": cid}
-
-
-def save_chat_event(
-    kind: str,
-    user_text: Optional[str] = None,
-    assistant_text: Optional[str] = None,
-    meta: Optional[dict] = None,
-    chat_id: str = "default",
-):
-    cid = _sanitize_chat_id(chat_id)
-    _ensure_chat_exists(cid)
-
-    evt = {
-        "ts": _now_iso(),
-        "chat_id": cid,
-        "kind": kind,
-        "user": user_text,
-        "assistant": assistant_text,
-        "meta": meta or {}
-    }
-
-    try:
-        with open(_chat_file(cid), "a", encoding="utf-8") as f:
-            f.write(json.dumps(evt, ensure_ascii=False) + "\n")
-    except:
-        pass
-
-    # auto-título: primera pregunta del usuario
-    if user_text and user_text.strip():
-        auto_title = re.sub(r"\s+", " ", user_text.strip())[:60]
-        _touch_chat(cid, title_if_empty=auto_title)
-    else:
-        _touch_chat(cid)
-
-
-def load_chat_history(chat_id: str = "default", limit: int = 50) -> list:
-    cid = _sanitize_chat_id(chat_id)
-    if limit <= 0:
-        return []
-    path = _chat_file(cid)
-    if not os.path.exists(path):
-        return []
-    try:
-        with open(path, "r", encoding="utf-8") as f:
-            lines = f.readlines()
-        lines = lines[-limit:]
-        out = []
-        for ln in lines:
-            ln = ln.strip()
-            if not ln:
-                continue
-            try:
-                out.append(json.loads(ln))
-            except:
-                continue
-        return out
-    except:
-        return []
-
-
-def _trim_chat_file(path: str):
-    try:
-        if not os.path.exists(path):
-            return
-        with open(path, "r", encoding="utf-8") as f:
-            lines = f.readlines()
-        if len(lines) <= CHAT_MAX_LINES:
-            return
-        keep = lines[-CHAT_MAX_LINES:]
-        with open(path, "w", encoding="utf-8") as f:
-            f.writelines(keep)
-    except:
-        pass
-
-
-def _trim_all_chats_if_needed():
-    try:
-        if not os.path.exists(CHATS_DIR):
-            return
-        for fn in os.listdir(CHATS_DIR):
-            if fn.endswith(".jsonl"):
-                _trim_chat_file(os.path.join(CHATS_DIR, fn))
-    except:
-        pass
-
-
-# =========================
-# ✅ Scheduler (recorte chats)
-# =========================
-scheduler = BackgroundScheduler(timezone=str(TZ))
-scheduler.start()
-scheduler.add_job(_trim_all_chats_if_needed, "interval", minutes=5, id="trim_chats", replace_existing=True)
-
-# =========================
-# ✅ Endpoints Multi-chat
-# =========================
-class ChatCreateReq(BaseModel):
-    title: Optional[str] = None
-
-class ChatRenameReq(BaseModel):
-    title: str
-
-@app.get("/chats")
-def api_list_chats():
-    return {"ok": True, "chats": list_chats()}
-
-@app.post("/chats")
-def api_create_chat(req: ChatCreateReq):
-    item = create_chat(req.title if req else None)
-    return {"ok": True, "chat": item}
-
-@app.get("/chats/{chat_id}")
-def api_get_chat(chat_id: str, limit: int = 50):
-    limit = max(1, min(int(limit), 500))
-    _ensure_chat_exists(chat_id)
-    return {"ok": True, "chat_id": _sanitize_chat_id(chat_id), "history": load_chat_history(chat_id, limit)}
-
-@app.patch("/chats/{chat_id}")
-def api_rename_chat(chat_id: str, req: ChatRenameReq):
-    item = rename_chat(chat_id, req.title)
-    return {"ok": True, "chat": item}
-
-@app.delete("/chats/{chat_id}")
-def api_delete_chat(chat_id: str):
-    return delete_chat(chat_id)
-
-# =========================
-# ✅ Compatibilidad: /chat (viejo)
-# =========================
-@app.get("/chat")
-def get_chat(limit: int = 50, chat_id: str = "default"):
-    limit = max(1, min(int(limit), 500))
-    _ensure_chat_exists(chat_id)
-    return {"ok": True, "chat_id": _sanitize_chat_id(chat_id), "history": load_chat_history(chat_id, limit)}
-
-@app.delete("/chat")
-def clear_chat(chat_id: str = "default"):
-    cid = _sanitize_chat_id(chat_id)
-    try:
-        path = _chat_file(cid)
-        if os.path.exists(path):
-            os.remove(path)
-            with open(_chat_file(cid), "a", encoding="utf-8") as f:
-                f.write("")
-    except:
-        pass
-    _touch_chat(cid)
-    return {"ok": True, "cleared": True, "chat_id": cid}
-
-# =========================
-# ✅ RESPUESTAS: modo corto vs modo detallado
-# =========================
-MAX_CHARS_SHORT = 320
-MAX_CHARS_LONG = 2200
-
-SYSTEM_STYLE_SHORT = (
-    "Eres un asistente conversacional en español (Ecuador). "
-    "Responde SOLO en 1 párrafo, sin listas, sin viñetas, sin títulos. "
-    f"Máximo {MAX_CHARS_SHORT} caracteres. "
-    "Sé claro y natural."
-)
-
-SYSTEM_STYLE_LONG = (
-    "Eres un asistente técnico en español (Ecuador). "
-    "Da una respuesta DETALLADA y útil. "
-    "Puedes usar secciones cortas y listas. "
-    f"Máximo {MAX_CHARS_LONG} caracteres. "
-    "NO inventes datos: usa SOLO lo que venga en ANALITICA_SENSORES."
-)
-
-def wants_detailed(question: str) -> bool:
-    q = (question or "").lower()
-    triggers = [
-        "detall", "detalle", "completo", "completa",
-        "profundo", "a fondo", "reporte", "informe",
-        "compar", "comparación", "comparacion", "analiza", "análisis", "analisis",
-        "últimos", "ultimos", "días", "dias", "resumen por día", "por dia", "por día"
-    ]
-    return any(t in q for t in triggers)
-
-def compact_answer(text: str, max_chars: int) -> str:
-    if not text:
-        return text
-    out = text.replace("\r", "\n")
-    out = " ".join(out.split())
-    if len(out) > max_chars:
-        out = out[:max_chars].rstrip()
-        if not out.endswith((".", "!", "?", ";", ":")):
-            out += "…"
-    return out
-
-def fetch_firebase_json(path: str = "/") -> dict:
-    try:
-        clean = (path or "/").strip()
-        if not clean.startswith("/"):
-            clean = "/" + clean
-        url = f"{FIREBASE_REST_BASE}{clean}.json"
-        r = requests.get(url, timeout=20)
-        r.raise_for_status()
-        return r.json()
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Firebase REST error: {e}")
-
-def needs_online(question: str) -> bool:
-    q = (question or "").lower()
-    if any(k in q for k in ["firebase", "sensores", "sensor", "medicion", "medición", "registro", "corriente", "voltaje", "potencia", "energia", "energía"]):
-        return False
-    triggers = [
-        "actual", "hoy", "ahora", "última hora", "noticia", "noticias",
-        "2024", "2025", "2026", "presidente", "gobierno",
-        "precio", "tarifa", "costo", "inflación", "kwh", "ecuador",
-        "quién es", "quien es", "qué pasó", "que paso"
-    ]
-    return any(t in q for t in triggers)
-
-def needs_sensors_context(question: str) -> bool:
-    q = (question or "").lower()
-    triggers = [
-        "sensor", "sensores", "medición", "medicion", "firebase",
-        "voltaje", "voltios", "corriente", "amper", "amperios",
-        "potencia", "watt", "watts", "consumo", "energía", "energia",
-        "kwh", "kilowatt", "kilovatio", "tarifa", "carga", "panel",
-        "temperatura", "humedad", "dht", "energia electrica", "electricidad",
-        "comparar", "comparación", "comparacion", "analiza", "análisis", "analisis",
-        "ultimos", "últimos", "dias", "días", "registro", "último registro", "ultimo registro"
-    ]
-    return any(t in q for t in triggers)
-
-# =========================
-# ✅ ANALÍTICA FIREBASE
-# =========================
-def get_mediciones_dict(data: dict) -> dict:
-    if not isinstance(data, dict):
-        return {}
-    meds = data.get("mediciones")
-    if isinstance(meds, dict):
-        return meds
-    return data
-
-def parse_mediciones(mediciones: dict) -> list:
-    registros = []
-    for _id, value in (mediciones or {}).items():
-        if not isinstance(value, dict):
-            continue
-        ts = value.get("timestamp")
-        if not ts:
-            continue
-        try:
-            fecha = datetime.strptime(str(ts), "%Y-%m-%d %H:%M:%S")
-        except:
-            continue
-
-        registros.append({
-            "id": _id,
-            "fecha": fecha,
-            "corriente": float(value.get("corriente", 0) or 0),
-            "voltaje": float(value.get("voltaje", 0) or 0),
-            "potencia": float(value.get("potencia", 0) or 0),
-            "energia_kwh": float(value.get("energia_kwh", 0) or 0),
-            "costo_usd": float(value.get("costo_usd", 0) or 0),
-            "rele": int(value.get("rele", 0) or 0),
-            "raw": value
-        })
-
-    registros.sort(key=lambda x: x["fecha"])
-    return registros
-
-def pick_latest_medicion(mediciones: dict):
-    latest = None
-    latest_ts = ""
-    for _id, item in (mediciones or {}).items():
-        if not isinstance(item, dict):
-            continue
-        ts = str(item.get("timestamp", "") or "")
-        if ts > latest_ts:
-            latest_ts = ts
-            latest = {"id": _id, **item}
-    return latest
-
-def ultimo_registro_completo(registros: list):
-    if not registros:
-        return {"ok": False, "error": "No hay registros"}
-    u = registros[-1]
-    return {
-        "ok": True,
-        "fecha_exacta": u["fecha"].strftime("%Y-%m-%d %H:%M:%S"),
-        "id": u["id"],
-        "datos": u["raw"]
-    }
-
-def analizar_ultimos_dias(registros: list, dias: int = 10):
-    if not registros:
-        return {"ok": False, "error": "No hay registros"}
-
-    limite = datetime.now() - timedelta(days=int(dias))
-    filtrados = [r for r in registros if r["fecha"] >= limite]
-    if not filtrados:
-        return {"ok": False, "error": f"No hay datos en los últimos {dias} días"}
-
-    resumen = defaultdict(lambda: defaultdict(list))
-    for r in filtrados:
-        dia = r["fecha"].date()
-        for k in ["corriente", "voltaje", "potencia", "energia_kwh", "costo_usd"]:
-            resumen[dia][k].append(r.get(k, 0))
-
-    analisis = {}
-    for dia, sensores in resumen.items():
-        analisis[str(dia)] = {}
-        for sensor, valores in sensores.items():
-            analisis[str(dia)][sensor] = {
-                "promedio": round(mean(valores), 4),
-                "max": max(valores),
-                "min": min(valores),
-                "muestras": len(valores)
-            }
-
-    top_por_variable = {}
-    for var in ["corriente", "voltaje", "potencia", "energia_kwh", "costo_usd"]:
-        best_day = None
-        best_val = -float("inf")
-        for d, sens in analisis.items():
-            v = sens.get(var, {}).get("max")
-            if v is None:
-                continue
-            if v > best_val:
-                best_val = v
-                best_day = d
-        if best_day is not None:
-            top_por_variable[var] = {"dia": best_day, "max": best_val}
-
-    return {"ok": True, "dias": dias, "resumen": analisis, "top_por_variable": top_por_variable}
-
-def comparar_dias(registros: list, fecha1_str: str, fecha2_str: str):
-    if not registros:
-        return {"ok": False, "error": "No hay registros"}
-
-    try:
-        f1 = datetime.strptime(fecha1_str, "%Y-%m-%d").date()
-        f2 = datetime.strptime(fecha2_str, "%Y-%m-%d").date()
-    except:
-        return {"ok": False, "error": "Formato inválido. Usa YYYY-MM-DD (ej: 2026-02-10)"}
-
-    grupos = {f1: [], f2: []}
-    for r in registros:
-        d = r["fecha"].date()
-        if d in grupos:
-            grupos[d].append(r)
-
-    def _stats(lista):
-        if not lista:
-            return None
-        out = {}
-        for var in ["corriente", "voltaje", "potencia", "energia_kwh", "costo_usd"]:
-            vals = [x.get(var, 0) for x in lista]
-            out[var] = {
-                "promedio": round(mean(vals), 4),
-                "max": max(vals),
-                "min": min(vals),
-                "muestras": len(vals)
-            }
-        return out
-
-    s1 = _stats(grupos[f1])
-    s2 = _stats(grupos[f2])
-
-    return {
-        "ok": True,
-        "fecha1": fecha1_str,
-        "fecha2": fecha2_str,
-        "stats": {
-            fecha1_str: (s1 or "Sin datos"),
-            fecha2_str: (s2 or "Sin datos")
-        }
-    }
-
-def extract_last_n_days(question: str, default_n: int = 10) -> int:
-    q = (question or "").lower()
-    m = re.search(r"(?:ultimos|últimos)\s+(\d{1,3})\s+(?:dias|días)", q)
-    if m:
-        try:
-            n = int(m.group(1))
-            return max(1, min(n, 365))
-        except:
-            pass
-    return default_n
-
-def extract_compare_dates(question: str):
-    dates = re.findall(r"\b(20\d{2}-\d{2}-\d{2})\b", (question or "").lower())
-    if len(dates) >= 2:
-        return dates[0], dates[1]
-    return None
-
-def compute_analytics_obj(question: str):
-    data = fetch_firebase_json("/")
-    mediciones = get_mediciones_dict(data)
-    registros = parse_mediciones(mediciones)
-
-    q = (question or "").lower()
-
-    if any(k in q for k in ["último registro", "ultimo registro", "registro completo", "última medición", "ultima medicion"]):
-        obj = ultimo_registro_completo(registros)
-        return obj, "ANALITICA_SENSORES: " + json.dumps(obj, ensure_ascii=False)
-
-    pair = extract_compare_dates(question)
-    if pair:
-        obj = comparar_dias(registros, pair[0], pair[1])
-        return obj, "ANALITICA_SENSORES: " + json.dumps(obj, ensure_ascii=False)
-
-    n = extract_last_n_days(question, default_n=10)
-    obj = analizar_ultimos_dias(registros, dias=n)
-    return obj, "ANALITICA_SENSORES: " + json.dumps(obj, ensure_ascii=False)
-
-# =========================
-# ✅ VOZ: resumen corto
-# =========================
-def summarize_analytics_for_voice(analytics: dict) -> str:
-    if not isinstance(analytics, dict) or not analytics.get("ok"):
-        return "Listo, Daniel. No encontré datos suficientes para ese análisis."
-
-    if "fecha_exacta" in analytics and "datos" in analytics:
-        d = analytics.get("datos") or {}
-        return (
-            f"Último registro: {analytics.get('fecha_exacta')}. "
-            f"Voltaje {d.get('voltaje')}, corriente {d.get('corriente')}, potencia {d.get('potencia')}. "
-            f"Energía {d.get('energia_kwh')} kilovatios hora y costo {d.get('costo_usd')} dólares."
-        )
-
-    if "top_por_variable" in analytics:
-        top = analytics.get("top_por_variable") or {}
-        winners = []
-        for k in ["potencia", "corriente", "voltaje", "energia_kwh", "costo_usd"]:
-            if k in top and top[k].get("dia"):
-                winners.append((k, top[k].get("dia")))
-        winners = winners[:2]
-        if winners:
-            parts = [f"{k} tuvo su pico el {dia}" for k, dia in winners]
-            return "Resumen: " + ". ".join(parts) + ". El detalle completo está en pantalla."
-        return "Listo, Daniel. Ya tengo el análisis. Mira el detalle completo en pantalla."
-
-    if "stats" in analytics:
-        return "Listo, Daniel. Ya comparé esos dos días. Te dejé promedios, máximos y mínimos completos en pantalla."
-
-    return "Listo, Daniel. Te dejé el análisis completo en pantalla."
-
-def build_answer_from_analytics_text(analytics: dict, detailed: bool) -> str:
-    if not isinstance(analytics, dict) or not analytics.get("ok"):
-        return "Daniel, no pude generar el análisis porque no encontré registros válidos con timestamp."
-
-    if "fecha_exacta" in analytics and "datos" in analytics:
-        d = analytics.get("datos") or {}
-        return (
-            f"Último registro ({analytics.get('fecha_exacta')}): "
-            f"voltaje={d.get('voltaje')}, corriente={d.get('corriente')}, potencia={d.get('potencia')}, "
-            f"energia_kwh={d.get('energia_kwh')}, costo_usd={d.get('costo_usd')}, rele={d.get('rele')}. "
-            "Te dejé todo el JSON en analytics."
-        )
-
-    if "stats" in analytics:
-        f1 = analytics.get("fecha1")
-        f2 = analytics.get("fecha2")
-        return (
-            f"Comparación entre {f1} y {f2}: revisa analytics.stats para ver promedios, máximos, mínimos y muestras "
-            "por variable. Si alguno sale 'Sin datos' es porque ese día no tuvo registros en Firebase."
-        )
-
-    if "top_por_variable" in analytics:
-        top = analytics.get("top_por_variable") or {}
-        if not detailed:
-            pieces = []
-            for k in ["potencia", "corriente", "voltaje"]:
-                if k in top:
-                    pieces.append(f"{k} pico {top[k].get('dia')} ({top[k].get('max')})")
-            if pieces:
-                return "Top (resumen): " + "; ".join(pieces) + ". Detalle completo en analytics."
-        return "Listo, Daniel. Te generé el resumen por día y los máximos por variable; revisa analytics.resumen y analytics.top_por_variable."
-
-    return "Listo, Daniel. Te dejé el análisis en analytics."
-
-# =========================
-# ✅ RECORDATORIOS: acepta "2" y "dos"
-# =========================
-_WORD2NUM = {
-    "un": 1, "uno": 1, "una": 1,
-    "dos": 2, "tres": 3, "cuatro": 4, "cinco": 5,
-    "seis": 6, "siete": 7, "ocho": 8, "nueve": 9,
-    "diez": 10, "once": 11, "doce": 12, "trece": 13,
-    "catorce": 14, "quince": 15, "veinte": 20,
-}
-
-def parse_reminder(text: str):
-    if not text:
-        return None
-    t = text.lower().strip()
-    if not any(k in t for k in ["recuérdame", "recuerdame", "recordarme", "recordatorio"]):
-        return None
-
-    m = re.search(r"\ben\s+(\d{1,3})\s*(min|mins|minuto|minutos)\b", t)
-    minutes = int(m.group(1)) if m else None
-
-    if minutes is None:
-        m2 = re.search(r"\ben\s+([a-záéíóúñ]+)\s*(min|mins|minuto|minutos)\b", t)
-        if m2:
-            minutes = _WORD2NUM.get(m2.group(1).strip())
-
-    if minutes is None or minutes <= 0:
-        return None
-
-    task = re.sub(r".*\ben\s+(\d{1,3}|[a-záéíóúñ]+)\s*(min|mins|minuto|minutos)\b", "", t).strip()
-    task = task.lstrip(" ,:;-").strip() or "tienes un recordatorio pendiente"
-    return minutes, task
-
-def tavily_search(query: str, max_results: int = 5) -> dict:
-    if not TAVILY_API_KEY:
-        return {"ok": False, "error": "TAVILY_API_KEY no está configurada."}
-    payload = {
-        "api_key": TAVILY_API_KEY,
-        "query": query,
-        "search_depth": "advanced",
-        "max_results": max_results,
-        "include_answer": False,
-        "include_raw_content": False
-    }
-    try:
-        r = requests.post(TAVILY_SEARCH_URL, json=payload, timeout=25)
-        r.raise_for_status()
-        data = r.json()
-        data["ok"] = True
-        return data
-    except Exception as e:
-        return {"ok": False, "error": f"Tavily error: {e}"}
-
-def format_tavily_context(tav: dict) -> str:
-    results = tav.get("results") if isinstance(tav, dict) else None
-    if not results:
-        return "No se encontraron resultados relevantes en la búsqueda web."
-    lines = []
-    for i, it in enumerate(results[:6], start=1):
-        title = (it.get("title") or "").strip()
-        url = (it.get("url") or "").strip()
-        content = " ".join((it.get("content") or "").split())[:350]
-        lines.append(f"[{i}] {title}\n{content}\nFuente: {url}")
-    return "\n\n".join(lines)
-
-def ask_ollama(prompt: str) -> str:
-    try:
-        payload = {"model": MODEL, "prompt": prompt, "stream": False}
-        r = requests.post(OLLAMA_URL, json=payload, timeout=180)
-        r.raise_for_status()
-        return (r.json().get("response", "") or "").strip()
-    except requests.exceptions.ConnectionError:
-        raise HTTPException(
-            status_code=503,
-            detail=(
-                f"No puedo conectar con Ollama en {OLLAMA_URL}. "
-                "Solución: asegúrate de tener Ollama corriendo (ollama serve) y el modelo descargado, "
-                "o si Ollama está en otra PC pon OLLAMA_HOST=IP_DE_ESA_PC en tu .env."
-            ),
-        )
-    except Exception as e:
-        raise HTTPException(status_code=503, detail=f"Error consultando Ollama: {e}")
-
-class AskReq(BaseModel):
-    question: str
-    chat_id: Optional[str] = "default"
-
-class SpeakReq(BaseModel):
-    text: str
-
-# ✅ Inicializar TTS engine
-engine = pyttsx3.init()
-engine.setProperty('rate', 175)
-engine.setProperty('volume', 1.0)
-try:
-    voices = engine.getProperty('voices')
-    for v in voices:
-        name = (getattr(v, "name", "") or "").lower()
-        vid  = (getattr(v, "id", "") or "").lower()
-        if "spanish" in name or "es_" in vid or "es-" in vid or "spanish" in vid:
-            engine.setProperty('voice', v.id)
-            break
-except:
-    pass
 
 # =========================
 # 📅 Calendar por voz/texto (Spectra -> n8n -> Google Calendar)
@@ -2295,5 +1604,4 @@ async def talk(audio: UploadFile = File(...), chat_id: str = "default"):
                     os.remove(path)
             except:
                 pass
-
 
