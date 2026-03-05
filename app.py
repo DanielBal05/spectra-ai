@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, redirect, session, Response
+from flask import Flask, render_template, request, jsonify, redirect, session
 import requests
 
 # ✅ Recordatorios (legacy)
@@ -8,10 +8,15 @@ import re
 from functools import wraps
 from urllib.parse import urlparse
 
-# ✅ DEBUG traceback
-import traceback
+# ✅ IMPORTANTE: apuntar templates a la carpeta actual (porque tus .html están en la raíz)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-app = Flask(__name__)
+# Si algún día sí creas carpeta templates/, Flask la usa; si no, usa la raíz (BASE_DIR)
+TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")
+if not os.path.isdir(TEMPLATES_DIR):
+    TEMPLATES_DIR = BASE_DIR
+
+app = Flask(__name__, template_folder=TEMPLATES_DIR)
 
 # ✅ necesario para sesiones (login)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev_secret_change_me")
