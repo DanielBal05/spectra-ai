@@ -87,7 +87,9 @@ DEFAULT_EVENT_MINUTES = int(os.getenv("DEFAULT_EVENT_MINUTES", "60"))
 # 🌐 Gemini (online) (OPCIONAL)
 # ====================
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
+
 if GEMINI_API_KEY:
+    import google.generativeai as genai
     genai.configure(api_key=GEMINI_API_KEY)
     gemini_model = genai.GenerativeModel("gemini-1.5-flash")
 else:
@@ -2293,4 +2295,5 @@ async def talk(audio: UploadFile = File(...), chat_id: str = "default"):
                     os.remove(path)
             except:
                 pass
+
 
