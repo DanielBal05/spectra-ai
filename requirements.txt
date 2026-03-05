@@ -6,3 +6,4 @@ python-dotenv
 apscheduler
 faster-whisper
 firebase-admin
+google-generativeai==0.7.2
