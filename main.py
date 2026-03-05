@@ -27,7 +27,7 @@ except Exception:
     TZ = ZoneInfo("UTC")
 
 # (Opcional) Gemini
-import google.generativeai as genai
+# import google.generativeai as genai
 
 # ✅ TTS gratis local (Windows SAPI) (OPCIONAL)
 # En Render (Linux) normalmente NO hay motor de voz, así que lo apagamos por defecto.
@@ -147,21 +147,26 @@ DEFAULT_EVENT_MINUTES = int(os.getenv("DEFAULT_EVENT_MINUTES", "60"))
 
 
 # ====================
-# 🌐 Gemini (online) (OPCIONAL)
+# 🌐 Gemini (online) (OPCIONAL) - lazy import (Render-safe)
 # ====================
-# OJO: si en Render tienes seteada GEMINI_API_KEY, va a intentar importar.
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
-
 gemini_model = None
-if GEMINI_API_KEY:
+
+def get_gemini_model():
+    global gemini_model
+    if gemini_model is not None:
+        return gemini_model
+    if not GEMINI_API_KEY:
+        return None
     try:
-        import google.generativeai as genai  # (deprecated warning, pero sirve)
+        import google.generativeai as genai
         genai.configure(api_key=GEMINI_API_KEY)
         gemini_model = genai.GenerativeModel("gemini-1.5-flash")
+        return gemini_model
     except Exception as e:
-        print("⚠️ Gemini desactivado (faltan librerías o config):", e)
+        print("⚠️ Gemini desactivado:", repr(e))
         gemini_model = None
-
+        return None
 
 ESP32_TTS_URL = "http://192.168.100.149/say"
 
