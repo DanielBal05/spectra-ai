@@ -1,8 +1,8 @@
 fastapi
-uvicorn[standard]
-requests
-tavily-python
-faster-whisper
-google-generativeai
-pyttsx3
+uvicorn
 python-multipart
+requests
+google-generativeai
+apscheduler
+pyttsx3
+pydantic
