@@ -1,6 +1,8 @@
 from fastapi import FastAPI, HTTPException, UploadFile, File, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
+from fastapi.middleware.wsgi import WSGIMiddleware
+from app import app as flask_app
 import requests
 import os, uuid, subprocess
 import json
@@ -1662,3 +1664,8 @@ async def talk(audio: UploadFile = File(...), chat_id: str = "default"):
                     os.remove(path)
             except:
                 pass
+
+# ===============================
+# Montar Flask (login antiguo)
+# ===============================
+app.mount("/", WSGIMiddleware(flask_app))
