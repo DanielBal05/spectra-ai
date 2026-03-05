@@ -1,9 +1,8 @@
 fastapi
 uvicorn
-python-multipart
 requests
-google-generativeai
-apscheduler
-pyttsx3
-pydantic
+flask==3.0.3
 python-dotenv
+apscheduler
+faster-whisper
+firebase-admin
