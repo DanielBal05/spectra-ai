@@ -4,3 +4,5 @@ requests
 tavily-python
 faster-whisper
 google-generativeai
+pyttsx3
+python-multipart
