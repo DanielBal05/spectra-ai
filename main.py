@@ -1313,6 +1313,14 @@ def firebase_ultima():
     last = pick_latest_medicion(mediciones)
     return {"ok": True, "last": last, "count": len(mediciones)}
 
+
+from pydantic import BaseModel
+from typing import Optional
+
+class AskReq(BaseModel):
+    question: str
+    chat_id: Optional[str] = "default"
+
 # ===============================
 # ✅ /ask (texto)
 # ===============================
