@@ -6,3 +6,4 @@ google-generativeai
 apscheduler
 pyttsx3
 pydantic
+python-dotenv
