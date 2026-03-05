@@ -64,7 +64,7 @@ def routes():
 
 
 # 🔧 CONFIG
-FASTAPI_BASE = os.environ.get("FASTAPI_BASE", "http://127.0.0.1:8000")  # si FastAPI está en otra PC/IP, cambia esto
+FASTAPI_BASE = os.environ.get("FASTAPI_BASE", "https://spectra-ai-axcs.onrender.com")  # si FastAPI está en otra PC/IP, cambia esto
 
 FASTAPI_TALK = f"{FASTAPI_BASE}/talk"
 FASTAPI_ASK = f"{FASTAPI_BASE}/ask"
