@@ -15,6 +15,15 @@ from typing import Optional
 from dotenv import load_dotenv
 load_dotenv()
 
+# ===============================
+# ✅ TIMEZONE (Render-safe)
+# ===============================
+TZ_NAME = os.getenv("TZ_NAME", "America/Cancun").strip()
+try:
+    TZ = ZoneInfo(TZ_NAME)
+except Exception:
+    TZ = ZoneInfo("UTC")
+
 # (Opcional) Gemini
 import google.generativeai as genai
 
@@ -72,6 +81,11 @@ def get_whisper():
 # ===============================
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.date import DateTrigger
+# ===============================
+# ✅ Scheduler global (CRÍTICO)
+# ===============================
+scheduler = BackgroundScheduler(timezone=str(TZ))
+scheduler.start()
 
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -1363,12 +1377,28 @@ async def talk(audio: UploadFile = File(...), chat_id: str = "default"):
         with open(in_path, "wb") as f:
             f.write(await audio.read())
 
+        # ✅ 1) Convertir a wav 16k (Render necesita ffmpeg instalado)
         cmd = ["ffmpeg", "-y", "-i", in_path, "-ac", "1", "-ar", "16000", wav_path]
-        p = subprocess.run(cmd, capture_output=True, text=True)
+        try:
+            p = subprocess.run(cmd, capture_output=True, text=True)
+        except FileNotFoundError:
+            raise HTTPException(
+                status_code=503,
+                detail="FFmpeg no está instalado en el servidor. /talk requiere ffmpeg para convertir audio."
+            )
+
         if p.returncode != 0:
             raise HTTPException(status_code=500, detail=f"FFmpeg error: {p.stderr[:300]}")
 
-        segments, info = whisper_model.transcribe(wav_path, language="es")
+        # ✅ 2) MOD3: Whisper lazy-load (NO usar whisper_model directo)
+        model = get_whisper()
+        if model is None:
+            raise HTTPException(
+                status_code=503,
+                detail="Whisper no disponible en este servidor (falta dependencia o RAM)."
+            )
+
+        segments, info = model.transcribe(wav_path, language="es")
         transcript = " ".join([seg.text.strip() for seg in segments]).strip()
 
         if not transcript:
@@ -1604,4 +1634,3 @@ async def talk(audio: UploadFile = File(...), chat_id: str = "default"):
                     os.remove(path)
             except:
                 pass
-
