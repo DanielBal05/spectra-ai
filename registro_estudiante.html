@@ -137,7 +137,7 @@
       z-index:50;
     }
 
-    /* ✅ Equipo + botón */
+    /* ✅ “Selector” de equipo + botón */
     .row{
       display:flex;
       gap:10px;
@@ -157,7 +157,7 @@
       line-height:1;
     }
 
-    /* ✅ Lista de equipos agregados */
+    /* ✅ Contenedor de “cuadraditos” */
     .listBox{
       margin-top:10px;
       border:1px solid #22304b;
@@ -172,29 +172,29 @@
       letter-spacing:.12em;
       text-transform:uppercase;
     }
-    .item{
-      display:flex;
-      gap:8px;
-      align-items:flex-start;
-      justify-content:space-between;
-      padding:10px;
+
+    /* ✅ Tarjeta de equipo (cuadradito) */
+    .equipCard{
       border:1px solid #22304b;
-      border-radius:12px;
+      border-radius:14px;
+      padding:10px;
       background:rgba(5,11,24,.55);
+      margin-bottom:10px;
+    }
+    .equipCard:last-child{ margin-bottom:0; }
+
+    .equipTop{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      justify-content:space-between;
       margin-bottom:8px;
     }
-    .item:last-child{ margin-bottom:0; }
-    .itemName{
-      font-weight:900;
-      color:var(--text);
-      font-size:13px;
-      line-height:1.2;
-    }
-    .itemExtra{
-      margin-top:6px;
+    .equipIdx{
       font-size:12px;
       color:var(--muted);
-      white-space:pre-wrap;
+      letter-spacing:.12em;
+      text-transform:uppercase;
     }
     .rmBtn{
       border:1px solid #22304b;
@@ -207,19 +207,20 @@
       flex:0 0 auto;
     }
 
-    .extraBox{
-      margin-top:10px;
-      border:1px dashed rgba(34,211,238,.35);
-      border-radius:14px;
-      padding:10px;
-      background:rgba(7,16,38,.45);
-    }
-    .extraTitle{
+    .miniLabel{
       font-size:12px;
       color:var(--muted);
-      letter-spacing:.12em;
-      text-transform:uppercase;
-      margin-bottom:8px;
+      margin:8px 0 6px;
+      display:block;
+    }
+    .lockedBadge{
+      font-size:11px;
+      color:#86efac;
+      border:1px solid rgba(74,222,128,.25);
+      background:rgba(74,222,128,.08);
+      padding:4px 8px;
+      border-radius:999px;
+      margin-left:8px;
     }
 
     @media (max-width: 980px){
@@ -255,32 +256,28 @@
         <option>5</option><option>6</option><option>7</option><option>8</option>
       </select>
 
-      <label>Equipo</label>
+      <!-- ✅ Selector “actual” (lo que está escribiendo / lo que llega del inventario) -->
+      <label>Equipo (selección actual)</label>
       <div class="row">
         <input id="equipo" name="equipo" type="text" placeholder="Ej: Osciloscopio" autocomplete="off" />
-        <button class="plusBtn" id="btnAddEquipo" type="button" title="Agregar equipo">+</button>
+        <button class="plusBtn" id="btnAddEquipo" type="button" title="Agregar y crear otro recuadro">+</button>
       </div>
 
-      <!-- ✅ EXTRA -->
-      <div class="extraBox">
-        <div class="extraTitle">Extra</div>
-        <textarea id="extra" placeholder="Ej: Con cables de medición / Con puntas / Con fuente / etc."></textarea>
-        <div class="hint" style="margin-top:8px;">
-          Esto se guarda junto al equipo cuando presionas <b>+</b>.
-        </div>
+      <div class="hint" style="margin-top:8px;">
+        ✅ Presiona <b>+</b> para “guardar” este equipo en un recuadro abajo y crear el siguiente.
       </div>
 
-      <!-- ✅ Lista -->
+      <!-- ✅ Cuadraditos dinámicos -->
       <div class="listBox" id="listBox">
         <div class="listTitle">Equipos agregados a esta solicitud</div>
-        <div id="equiposList"></div>
+        <div id="equipCards"></div>
         <div class="hint" style="margin-top:8px;">
-          Puedes agregar varios equipos con <b>+</b>. Al registrar, se enviará un registro por cada equipo.
+          Cada recuadro se manda como un registro individual al registrar.
         </div>
       </div>
 
       <button class="btn" id="btnRegistrar">Registrar</button>
-      <button class="btnGhost" id="btnClearEquipo" type="button">Limpiar equipo</button>
+      <button class="btnGhost" id="btnClearEquipo" type="button">Limpiar todo</button>
 
       <div class="hint">
         Tu <b>Nombre</b> e <b>ID Banner</b> se toman del login.<br/>
@@ -310,8 +307,9 @@
   const SHAREPOINT_INVENTARIO_URL =
     "https://udlaec.sharepoint.com/sites/InventarioLaboratorioElectrnica/Lists/Inventario/AllItems.aspx?env=WebViewList";
 
-  // ✅ lista de equipos para una sola solicitud
-  let equiposPedido = []; // [{equipo, extra}]
+  // ✅ “cuadraditos” (tarjetas) de equipos
+  // { equipo: string, extra: string, locked: boolean }
+  let equiposPedido = [];
 
   function toast(msg){
     const t = $("toast");
@@ -352,8 +350,16 @@
     return { value: "", from: "" };
   }
 
-  function renderEquiposList(){
-    const wrap = $("equiposList");
+  function clearEquipoQueryAndStorage(){
+    const url = new URL(window.location.href);
+    url.searchParams.delete("equipo");
+    window.history.replaceState({}, "", url.toString());
+    sessionStorage.removeItem("spectra_equipo");
+  }
+
+  // ✅ Render de “cuadraditos”
+  function renderEquipCards(){
+    const wrap = $("equipCards");
     wrap.innerHTML = "";
 
     if(!equiposPedido.length){
@@ -363,68 +369,155 @@
 
     equiposPedido.forEach((it, idx) => {
       const div = document.createElement("div");
-      div.className = "item";
+      div.className = "equipCard";
       div.innerHTML = `
-        <div>
-          <div class="itemName">${it.equipo}</div>
-          ${it.extra ? `<div class="itemExtra"><b>Extra:</b> ${it.extra}</div>` : `<div class="itemExtra"><b>Extra:</b> -</div>`}
+        <div class="equipTop">
+          <div class="equipIdx">
+            Equipo ${idx + 1}
+            ${it.locked ? `<span class="lockedBadge">OK</span>` : `<span class="lockedBadge" style="color:#93c5fd;border-color:rgba(147,197,253,.25);background:rgba(147,197,253,.08)">EDIT</span>`}
+          </div>
+          <button class="rmBtn" type="button" data-idx="${idx}">Quitar</button>
         </div>
-        <button class="rmBtn" type="button" data-idx="${idx}">Quitar</button>
+
+        <label class="miniLabel">Equipo</label>
+        <input class="equipInput" data-idx="${idx}" type="text" placeholder="Ej: Multímetro" value="${escapeHtml(it.equipo || "")}" ${it.locked ? "readonly" : ""} />
+
+        <label class="miniLabel">Extra</label>
+        <textarea class="extraInput" data-idx="${idx}" placeholder="Ej: con puntas / con cables / etc.">${escapeHtml(it.extra || "")}</textarea>
+
+        <div class="hint" style="margin-top:8px;">
+          ${it.locked
+            ? "✅ Este equipo ya quedó guardado. Si quieres cambiarlo, quítalo y vuelve a agregar."
+            : "📝 Puedes editar. Presiona <b>+</b> arriba para guardarlo y crear el siguiente."
+          }
+        </div>
       `;
       wrap.appendChild(div);
     });
 
-    // bind remove
+    // Bind quitar
     wrap.querySelectorAll(".rmBtn").forEach(btn=>{
       btn.addEventListener("click", ()=>{
         const i = parseInt(btn.getAttribute("data-idx"), 10);
         equiposPedido.splice(i, 1);
-        renderEquiposList();
+        renderEquipCards();
+      });
+    });
+
+    // Bind cambios
+    wrap.querySelectorAll(".equipInput").forEach(inp=>{
+      inp.addEventListener("input", ()=>{
+        const i = parseInt(inp.getAttribute("data-idx"), 10);
+        if (equiposPedido[i]) equiposPedido[i].equipo = inp.value;
+      });
+    });
+    wrap.querySelectorAll(".extraInput").forEach(tx=>{
+      tx.addEventListener("input", ()=>{
+        const i = parseInt(tx.getAttribute("data-idx"), 10);
+        if (equiposPedido[i]) equiposPedido[i].extra = tx.value;
       });
     });
   }
 
-  function addEquipoActual(){
-    const equipo = ($("equipo").value || "").trim();
-    const extra = ($("extra").value || "").trim();
+  // ✅ helper para no romper HTML
+  function escapeHtml(str){
+    return String(str)
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#039;");
+  }
 
+  // ✅ encuentra el primer recuadro “editable” (no locked) y preferiblemente vacío
+  function findTargetEditableIndex(){
+    // 1) editable y vacío
+    let idx = equiposPedido.findIndex(x => !x.locked && !(x.equipo || "").trim());
+    if(idx !== -1) return idx;
+
+    // 2) cualquier editable
+    idx = equiposPedido.findIndex(x => !x.locked);
+    if(idx !== -1) return idx;
+
+    return -1;
+  }
+
+  // ✅ asegura que exista al menos 1 recuadro editable
+  function ensureEditableCard(){
+    const idx = findTargetEditableIndex();
+    if(idx !== -1) return idx;
+    equiposPedido.push({ equipo:"", extra:"", locked:false });
+    return equiposPedido.length - 1;
+  }
+
+  // ✅ toma lo del input de arriba y lo “convierte” en un recuadro guardado + crea otro
+  function addEquipoDesdeSelector(){
+    const equipo = ($("equipo").value || "").trim();
     if(!equipo || equipo.length < 2){
       return toast("Escribe un equipo válido antes de presionar + ❗");
     }
 
-    // evita duplicados exactos (mismo equipo + mismo extra)
-    const key = (equipo + "||" + extra).toLowerCase();
-    const exists = equiposPedido.some(x => (x.equipo + "||" + (x.extra||"")).toLowerCase() === key);
+    // Coloca esto en el recuadro editable actual (o crea uno)
+    const idx = ensureEditableCard();
+
+    // Evita duplicados exactos (equipo + extra)
+    const extraNow = (equiposPedido[idx].extra || "").trim();
+    const newKey = (equipo + "||" + extraNow).toLowerCase();
+    const exists = equiposPedido.some((x, k) => k !== idx && ((x.equipo||"") + "||" + (x.extra||"")).toLowerCase() === newKey);
     if(exists){
       return toast("Ese equipo ya está agregado ✅");
     }
 
-    equiposPedido.push({ equipo, extra });
+    equiposPedido[idx].equipo = equipo;
+    equiposPedido[idx].locked = true; // ✅ guardado
 
-    // opcional: limpiar extra para el siguiente equipo
-    $("extra").value = "";
+    // Limpia selector de arriba y crea el siguiente recuadro editable
     $("equipo").value = "";
     $("equipo").readOnly = false;
 
-    // limpiar querystring equipo para que no “se pegue”
-    const url = new URL(window.location.href);
-    url.searchParams.delete("equipo");
-    window.history.replaceState({}, "", url.toString());
-    sessionStorage.removeItem("spectra_equipo");
+    // Crea uno nuevo editable al final
+    equiposPedido.push({ equipo:"", extra:"", locked:false });
 
-    renderEquiposList();
+    // Limpia query/storage para que no “se pegue”
+    clearEquipoQueryAndStorage();
+
+    renderEquipCards();
     toast("Equipo agregado ✅");
-    $("equipo").focus();
+
+    // Focus al input del último (editable)
+    setTimeout(()=>{
+      const wrap = $("equipCards");
+      const inputs = wrap.querySelectorAll(".equipInput");
+      const last = inputs[inputs.length - 1];
+      if(last) last.focus();
+    }, 50);
   }
 
-  // ✅ Autollenar equipo si viene por URL (pero OJO: ahora hay que presionar + para agregarlo)
-  function autofillEquipo(){
+  // ✅ Autollenar: lo que venga de SharePoint va al primer recuadro vacío/editable
+  function autofillEquipoIntoCard(){
     const info = getEquipoFromURLorStorage();
     if(!info.value) return;
 
+    const idx = ensureEditableCard();
+
+    // Si el recuadro editable ya tiene algo, creamos uno nuevo para no sobreescribir
+    if((equiposPedido[idx].equipo || "").trim()){
+      equiposPedido.push({ equipo:"", extra:"", locked:false });
+    }
+
+    const targetIdx = findTargetEditableIndex();
+    equiposPedido[targetIdx].equipo = info.value;
+
+    renderEquipCards();
+
+    toast(`Equipo seleccionado ✅\n${info.value}\n(pon Extra si quieres y presiona + para crear otro)`);
+
+    // Ponlo también en el selector visual de arriba (solo como espejo)
     $("equipo").value = info.value;
     $("equipo").readOnly = true;
-    toast(`Equipo seleccionado ✅\n${info.value}\n(ahora presiona + para agregarlo)`);
+
+    // Limpia query para que si refresca no se repita infinito
+    clearEquipoQueryAndStorage();
   }
 
   async function loadSession(){
@@ -457,11 +550,11 @@
   });
 
   // ✅ plus
-  $("btnAddEquipo").addEventListener("click", addEquipoActual);
+  $("btnAddEquipo").addEventListener("click", addEquipoDesdeSelector);
 
-  // Enter en Equipo agrega
+  // Enter en selector agrega
   $("equipo").addEventListener("keydown", (e)=>{
-    if(e.key === "Enter") addEquipoActual();
+    if(e.key === "Enter") addEquipoDesdeSelector();
   });
 
   $("btnRegistrar").addEventListener("click", async () => {
@@ -472,12 +565,31 @@
       return toast("Selecciona un semestre válido ❗");
     }
 
-    // si no agregaron con +, usamos el equipo actual como 1 item (por si se les olvida)
-    if(!equiposPedido.length){
-      const equipo = ($("equipo").value || "").trim();
-      const extra = ($("extra").value || "").trim();
-      if(!equipo) return toast("Agrega al menos 1 equipo con + ❗");
-      equiposPedido = [{ equipo, extra }];
+    // Construye lista final:
+    // - Todos los locked con equipo
+    // - Si hay uno editable con equipo (por si no aplastó +), lo incluimos también
+    const finalEquipos = [];
+
+    for(const it of equiposPedido){
+      const eq = (it.equipo || "").trim();
+      const ex = (it.extra || "").trim();
+      if(it.locked && eq) finalEquipos.push({ equipo:eq, extra:ex });
+    }
+
+    // fallback: si el último editable tiene algo, lo manda también
+    const editableIdx = equiposPedido.findIndex(x => !x.locked && (x.equipo || "").trim());
+    if(editableIdx !== -1){
+      finalEquipos.push({
+        equipo: (equiposPedido[editableIdx].equipo || "").trim(),
+        extra: (equiposPedido[editableIdx].extra || "").trim()
+      });
+    }
+
+    // Si no hay nada en tarjetas, usamos el selector de arriba como último fallback
+    if(finalEquipos.length === 0){
+      const equipoSel = ($("equipo").value || "").trim();
+      if(!equipoSel) return toast("Agrega al menos 1 equipo con + ❗");
+      finalEquipos.push({ equipo: equipoSel, extra: "" });
     }
 
     $("btnRegistrar").disabled = true;
@@ -486,8 +598,7 @@
       let okCount = 0;
       const ids = [];
 
-      // ✅ registra uno por uno (no cambia tu backend)
-      for(const it of equiposPedido){
+      for(const it of finalEquipos){
         const r = await fetchWithTimeout("/api/lab/prestar", {
           method:"POST",
           headers:{"Content-Type":"application/json"},
@@ -499,7 +610,6 @@
         if(!r.ok || (j && j.ok === false)){
           const msg = j.error || j.msg || `Error registrando ${it.equipo}`;
           toast(`❌ Falló: ${it.equipo}\n${msg}`);
-          // seguimos con los demás (para no perder todo)
           continue;
         }
 
@@ -513,7 +623,7 @@
       }
 
       if(okCount === 0){
-        return; // ya avisamos el error arriba
+        return;
       }
 
       toast(`✅ Solicitud registrada\nEquipos: ${okCount}\n${ids.slice(0,6).join("\n")}${ids.length>6 ? "\n..." : ""}`);
@@ -521,10 +631,9 @@
       // limpia
       $("semestre").value = "";
       $("equipo").value = "";
-      $("extra").value = "";
       $("equipo").readOnly = false;
-      equiposPedido = [];
-      renderEquiposList();
+      equiposPedido = [{ equipo:"", extra:"", locked:false }];
+      renderEquipCards();
 
     }catch(e){
       if(String(e).includes("AbortError")){
@@ -539,20 +648,14 @@
 
   $("btnClearEquipo").addEventListener("click", ()=>{
     $("equipo").value = "";
-    $("extra").value = "";
     $("equipo").readOnly = false;
 
-    const url = new URL(window.location.href);
-    url.searchParams.delete("equipo");
-    window.history.replaceState({}, "", url.toString());
+    clearEquipoQueryAndStorage();
 
-    sessionStorage.removeItem("spectra_equipo");
+    equiposPedido = [{ equipo:"", extra:"", locked:false }];
+    renderEquipCards();
 
-    // limpia también lista
-    equiposPedido = [];
-    renderEquiposList();
-
-    toast("Equipo(s) limpiado(s) ✅");
+    toast("Todo limpiado ✅");
     $("equipo").focus();
   });
 
@@ -571,8 +674,13 @@
   });
 
   document.addEventListener("DOMContentLoaded", ()=>{
-    renderEquiposList();
-    autofillEquipo();
+    // Siempre arrancamos con 1 recuadro editable
+    equiposPedido = [{ equipo:"", extra:"", locked:false }];
+    renderEquipCards();
+
+    // Si viene desde SharePoint, llena el primer recuadro vacío
+    autofillEquipoIntoCard();
+
     loadSession();
   });
 </script>
