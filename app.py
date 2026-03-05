@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, redirect, session
+from flask import Flask, render_template, request, jsonify, redirect, session, Response
 import requests
 
 # ✅ Recordatorios (legacy)
@@ -7,6 +7,9 @@ from datetime import datetime, timedelta
 import re
 from functools import wraps
 from urllib.parse import urlparse
+
+# ✅ DEBUG traceback
+import traceback
 
 app = Flask(__name__)
 
@@ -250,6 +253,15 @@ def login_page():
         )
 
     return render_template("login.html", next=next_url)
+
+# ✅✅ DEBUG: ver error real del login en texto
+@app.get("/debug/login")
+def debug_login():
+    try:
+        next_url = _safe_next_url(request.args.get("next"), default="/")
+        return render_template("login.html", next=next_url)
+    except Exception:
+        return Response(traceback.format_exc(), mimetype="text/plain")
 
 @app.route("/auth/admin", methods=["POST"])
 def auth_admin():
