@@ -97,6 +97,17 @@ app = FastAPI(
     swagger_ui_parameters={"tryItOutEnabled": True},
 )
 
+from fastapi.responses import PlainTextResponse
+import traceback
+
+@app.get("/debug/openapi", response_class=PlainTextResponse)
+def debug_openapi():
+    try:
+        schema = app.openapi()
+        return "OK ✅ OpenAPI generado. Keys: " + ", ".join(list(schema.keys()))
+    except Exception:
+        return traceback.format_exc()
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
