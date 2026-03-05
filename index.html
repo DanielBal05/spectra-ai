@@ -1,0 +1,69 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Holograma Voice</title>
+</head>
+<body style="font-family: sans-serif;">
+  <h2>Habla y responde</h2>
+  <button id="btnRec">🎙️ Grabar</button>
+  <button id="btnStop" disabled>⏹️ Parar</button>
+  <p id="status">Listo.</p>
+  <audio id="player" controls style="width: 100%;"></audio>
+
+<script>
+const API_BASE = "http://192.168.110.84:8000"; // <-- cambia esto
+let mediaRecorder;
+let chunks = [];
+
+const statusEl = document.getElementById("status");
+const btnRec = document.getElementById("btnRec");
+const btnStop = document.getElementById("btnStop");
+const player = document.getElementById("player");
+
+btnRec.onclick = async () => {
+  chunks = [];
+  statusEl.textContent = "Pidiendo permiso al micrófono...";
+
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  mediaRecorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
+
+  mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
+
+  mediaRecorder.onstop = async () => {
+    statusEl.textContent = "Enviando audio al servidor...";
+    const blob = new Blob(chunks, { type: "audio/webm" });
+
+    const fd = new FormData();
+    fd.append("audio", blob, "voice.webm");
+
+    const res = await fetch(`${API_BASE}/talk`, { method: "POST", body: fd });
+    if (!res.ok) {
+      statusEl.textContent = "Error del servidor: " + res.status;
+      return;
+    }
+
+    const audioBlob = await res.blob();
+    const url = URL.createObjectURL(audioBlob);
+    player.src = url;
+
+    statusEl.textContent = "Respuesta lista. Reproduciendo...";
+    player.play();
+  };
+
+  mediaRecorder.start();
+  statusEl.textContent = "Grabando... habla ahora.";
+  btnRec.disabled = true;
+  btnStop.disabled = false;
+};
+
+btnStop.onclick = () => {
+  mediaRecorder.stop();
+  statusEl.textContent = "Procesando...";
+  btnRec.disabled = false;
+  btnStop.disabled = true;
+};
+</script>
+</body>
+</html>

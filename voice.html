@@ -1,0 +1,140 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Voice Test</title>
+</head>
+<body style="font-family: Arial, sans-serif; padding: 16px;">
+  <h2>🎙️ Hablar con la IA</h2>
+
+  <p id="status">Listo.</p>
+
+  <button id="btnRec">Grabar</button>
+  <button id="btnStop" disabled>Parar</button>
+
+  <hr />
+  <div>
+    <b>Transcripción:</b>
+    <div id="txt" style="margin-top:8px; white-space:pre-wrap;"></div>
+  </div>
+
+  <div style="margin-top:14px;">
+    <b>Respuesta:</b>
+    <div id="ans" style="margin-top:8px; white-space:pre-wrap;"></div>
+  </div>
+
+<script>
+const API_BASE = "http://192.168.110.84:8000"; // <-- TU IP
+let mediaRecorder;
+let chunks = [];
+let streamRef;
+
+const statusEl = document.getElementById("status");
+const txtEl = document.getElementById("txt");
+const ansEl = document.getElementById("ans");
+const btnRec = document.getElementById("btnRec");
+const btnStop = document.getElementById("btnStop");
+
+btnRec.onclick = async () => {
+  try {
+    txtEl.textContent = "";
+    ansEl.textContent = "";
+    chunks = [];
+
+    statusEl.textContent = "Inicializando micrófono...";
+
+    // 1) Pedir micrófono
+    streamRef = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+    // 2) Forzar un mimeType compatible (evita que “no pase nada” en algunos Android)
+    const preferred = "audio/webm;codecs=opus";
+    const options = MediaRecorder.isTypeSupported(preferred)
+      ? { mimeType: preferred }
+      : {}; // fallback si no soporta
+
+    mediaRecorder = new MediaRecorder(streamRef, options);
+
+    // 3) Eventos (con logs/errores)
+    mediaRecorder.onstart = () => {
+      statusEl.textContent = "🎙️ Grabando... habla ahora.";
+    };
+
+    mediaRecorder.ondataavailable = (e) => {
+      if (e.data && e.data.size > 0) chunks.push(e.data);
+    };
+
+    mediaRecorder.onerror = (e) => {
+      console.error("MediaRecorder error:", e);
+      statusEl.textContent = "Error grabando audio (mira consola).";
+    };
+
+    mediaRecorder.onstop = async () => {
+      statusEl.textContent = "Enviando audio al servidor...";
+
+      // Si no se grabó nada
+      if (!chunks.length) {
+        statusEl.textContent = "No se capturó audio. Intenta de nuevo.";
+        return;
+      }
+
+      const mime = (mediaRecorder.mimeType && mediaRecorder.mimeType.length)
+        ? mediaRecorder.mimeType
+        : (options.mimeType || "audio/webm");
+
+      const blob = new Blob(chunks, { type: mime });
+      const fd = new FormData();
+      fd.append("audio", blob, "voice.webm");
+
+      try {
+        const res = await fetch(`${API_BASE}/talk`, { method: "POST", body: fd });
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+          statusEl.textContent = "Error servidor: " + (data.detail || res.status);
+          return;
+        }
+
+        txtEl.textContent = data.transcript || "";
+        ansEl.textContent = data.answer || "";
+        statusEl.textContent = "Listo ✅ (si tienes ESP32, ya debió hablar)";
+      } catch (err) {
+        console.error("Fetch error:", err);
+        statusEl.textContent = "Error de conexión con el servidor.";
+      } finally {
+        // Apaga el micrófono para que no quede prendido
+        try {
+          streamRef.getTracks().forEach(t => t.stop());
+        } catch {}
+        streamRef = null;
+      }
+    };
+
+    // 4) Arrancar
+    mediaRecorder.start();
+
+    btnRec.disabled = true;
+    btnStop.disabled = false;
+
+  } catch (err) {
+    console.error("getUserMedia error:", err);
+    statusEl.textContent = "No se pudo acceder al micrófono. Revisa permisos.";
+  }
+};
+
+btnStop.onclick = () => {
+  try {
+    if (mediaRecorder && mediaRecorder.state === "recording") {
+      mediaRecorder.stop();
+      statusEl.textContent = "Procesando...";
+    }
+  } catch (err) {
+    console.error("Stop error:", err);
+  } finally {
+    btnRec.disabled = false;
+    btnStop.disabled = true;
+  }
+};
+</script>
+</body>
+</html>

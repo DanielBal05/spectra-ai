@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Spectra AI — Registro Estudiante</title>
+
+  <style>
+    :root{
+      --bg:#020617;
+      --card:#0b1224cc;
+      --stroke:#1f2a44;
+      --text:#e5e7eb;
+      --muted:#9ca3af;
+      --cyan:#22d3ee;
+      --purple:#a855f7;
+      --ok:#4ade80;
+      --danger:#f97373;
+      --chip:#111a33;
+      --panel:#061021;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{
+      font-family:system-ui,-apple-system,Segoe UI,sans-serif;
+      background: radial-gradient(circle at top, #0b1120 0, #020617 45%, #000 100%);
+      color:var(--text);
+      min-height:100vh;
+      padding:24px;
+    }
+    .top{
+      display:flex;align-items:center;justify-content:space-between;
+      gap:12px; margin-bottom:18px; flex-wrap:wrap;
+    }
+    .title{
+      font-size:18px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);
+    }
+    .topRight{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+    .linkBtn{
+      color:var(--cyan);text-decoration:none;font-weight:700;
+      border:1px solid #1b2a3a; padding:10px 14px; border-radius:14px;
+      background:#071026;
+      cursor:pointer;
+    }
+    .grid{
+      display:grid;
+      grid-template-columns: 420px 1fr;
+      gap:18px;
+      align-items:start;
+    }
+    .card{
+      background:var(--card);
+      border:1px solid var(--stroke);
+      border-radius:18px;
+      padding:16px;
+      box-shadow:0 10px 30px rgba(0,0,0,.35);
+    }
+    .card h3{
+      font-size:14px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);
+      margin-bottom:10px;
+    }
+    label{display:block;font-size:12px;color:var(--muted);margin:10px 0 6px}
+    select, input, textarea{
+      width:100%;
+      padding:12px 12px;
+      border-radius:14px;
+      border:1px solid #22304b;
+      background:#050b18;
+      color:var(--text);
+      outline:none;
+    }
+    textarea{ min-height:78px; resize:vertical; }
+    input[disabled]{
+      opacity:.85;
+      cursor:not-allowed;
+    }
+    select:focus, input:focus, textarea:focus{border-color:rgba(34,211,238,.45)}
+    .btn{
+      width:100%;
+      margin-top:14px;
+      padding:12px 14px;
+      border-radius:14px;
+      border:1px solid #20314b;
+      background: linear-gradient(90deg, rgba(34,211,238,.25), rgba(168,85,247,.15));
+      color:var(--text);
+      font-weight:800;
+      cursor:pointer;
+    }
+    .btn:disabled{opacity:.55;cursor:not-allowed}
+
+    .btnGhost{
+      width:100%;
+      margin-top:10px;
+      padding:10px 14px;
+      border-radius:14px;
+      border:1px solid #22304b;
+      background:#071026;
+      color:var(--cyan);
+      font-weight:800;
+      cursor:pointer;
+    }
+
+    .hint{
+      margin-top:10px;
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.35
+    }
+
+    .card2{
+      background:var(--panel);
+      border:1px solid #1f2a44;
+      border-radius:18px;
+      padding:16px;
+      box-shadow:0 10px 30px rgba(0,0,0,.35);
+      min-height:220px;
+    }
+
+    .chip{
+      display:inline-block;
+      background:var(--chip);
+      border:1px solid #22304b;
+      color:var(--muted);
+      padding:6px 10px;border-radius:999px;
+      font-size:12px;
+      margin:6px 6px 0 0;
+    }
+
+    .toast{
+      position:fixed; right:18px; bottom:18px;
+      background:#071026;border:1px solid #1f2a44;
+      padding:12px 14px;border-radius:14px;
+      color:var(--text); display:none;
+      box-shadow:0 10px 30px rgba(0,0,0,.4);
+      max-width:520px;
+      line-height:1.35;
+      white-space:pre-line;
+      z-index:50;
+    }
+
+    /* ✅ Equipo + botón */
+    .row{
+      display:flex;
+      gap:10px;
+      align-items:center;
+    }
+    .plusBtn{
+      flex:0 0 auto;
+      width:46px;
+      height:46px;
+      border-radius:14px;
+      border:1px solid #22304b;
+      background:#071026;
+      color:var(--cyan);
+      font-weight:900;
+      cursor:pointer;
+      font-size:20px;
+      line-height:1;
+    }
+
+    /* ✅ Lista de equipos agregados */
+    .listBox{
+      margin-top:10px;
+      border:1px solid #22304b;
+      background:#071026;
+      border-radius:14px;
+      padding:10px;
+    }
+    .listTitle{
+      font-size:12px;
+      color:var(--muted);
+      margin-bottom:8px;
+      letter-spacing:.12em;
+      text-transform:uppercase;
+    }
+    .item{
+      display:flex;
+      gap:8px;
+      align-items:flex-start;
+      justify-content:space-between;
+      padding:10px;
+      border:1px solid #22304b;
+      border-radius:12px;
+      background:rgba(5,11,24,.55);
+      margin-bottom:8px;
+    }
+    .item:last-child{ margin-bottom:0; }
+    .itemName{
+      font-weight:900;
+      color:var(--text);
+      font-size:13px;
+      line-height:1.2;
+    }
+    .itemExtra{
+      margin-top:6px;
+      font-size:12px;
+      color:var(--muted);
+      white-space:pre-wrap;
+    }
+    .rmBtn{
+      border:1px solid #22304b;
+      background:#050b18;
+      color:#fca5a5;
+      font-weight:900;
+      border-radius:12px;
+      padding:8px 10px;
+      cursor:pointer;
+      flex:0 0 auto;
+    }
+
+    .extraBox{
+      margin-top:10px;
+      border:1px dashed rgba(34,211,238,.35);
+      border-radius:14px;
+      padding:10px;
+      background:rgba(7,16,38,.45);
+    }
+    .extraTitle{
+      font-size:12px;
+      color:var(--muted);
+      letter-spacing:.12em;
+      text-transform:uppercase;
+      margin-bottom:8px;
+    }
+
+    @media (max-width: 980px){
+      .grid{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+  <div class="top">
+    <div class="title">Registro de préstamos — Estudiante</div>
+    <div class="topRight">
+      <button class="linkBtn" id="btnInventario" type="button">Inventario</button>
+      <button class="linkBtn" id="btnLogout" type="button">Cerrar sesión</button>
+      <a class="linkBtn" href="/login">Ir a Login</a>
+    </div>
+  </div>
+
+  <div class="grid">
+    <!-- FORM -->
+    <div class="card">
+      <h3>Registrar préstamo</h3>
+
+      <label>Nombre</label>
+      <input id="nombre" type="text" disabled />
+
+      <label>ID Banner</label>
+      <input id="banner_id" type="text" disabled />
+
+      <label>Semestre</label>
+      <select id="semestre">
+        <option value="">Selecciona...</option>
+        <option>1</option><option>2</option><option>3</option><option>4</option>
+        <option>5</option><option>6</option><option>7</option><option>8</option>
+      </select>
+
+      <label>Equipo</label>
+      <div class="row">
+        <input id="equipo" name="equipo" type="text" placeholder="Ej: Osciloscopio" autocomplete="off" />
+        <button class="plusBtn" id="btnAddEquipo" type="button" title="Agregar equipo">+</button>
+      </div>
+
+      <!-- ✅ EXTRA -->
+      <div class="extraBox">
+        <div class="extraTitle">Extra</div>
+        <textarea id="extra" placeholder="Ej: Con cables de medición / Con puntas / Con fuente / etc."></textarea>
+        <div class="hint" style="margin-top:8px;">
+          Esto se guarda junto al equipo cuando presionas <b>+</b>.
+        </div>
+      </div>
+
+      <!-- ✅ Lista -->
+      <div class="listBox" id="listBox">
+        <div class="listTitle">Equipos agregados a esta solicitud</div>
+        <div id="equiposList"></div>
+        <div class="hint" style="margin-top:8px;">
+          Puedes agregar varios equipos con <b>+</b>. Al registrar, se enviará un registro por cada equipo.
+        </div>
+      </div>
+
+      <button class="btn" id="btnRegistrar">Registrar</button>
+      <button class="btnGhost" id="btnClearEquipo" type="button">Limpiar equipo</button>
+
+      <div class="hint">
+        Tu <b>Nombre</b> e <b>ID Banner</b> se toman del login.<br/>
+        Solo llenas <b>Semestre</b> y agregas <b>Equipo(s)</b> con el <b>+</b> ✅
+      </div>
+    </div>
+
+    <!-- INFO -->
+    <div class="card2">
+      <h3 style="margin-bottom:10px; letter-spacing:.18em; text-transform:uppercase; color:var(--muted); font-size:14px;">
+        Tu sesión
+      </h3>
+      <div id="sessionInfo"></div>
+
+      <div class="hint" style="margin-top:14px;">
+        ✅ Acércate a un <b>ayudante de cátedra</b> para que verifique tu solicitud.<br/>
+        Si algo sale mal, revisa que estés entrando por <b>/login</b> como estudiante y luego te mande a <b>/registro-estudiante</b>.
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+
+  const SHAREPOINT_INVENTARIO_URL =
+    "https://udlaec.sharepoint.com/sites/InventarioLaboratorioElectrnica/Lists/Inventario/AllItems.aspx?env=WebViewList";
+
+  // ✅ lista de equipos para una sola solicitud
+  let equiposPedido = []; // [{equipo, extra}]
+
+  function toast(msg){
+    const t = $("toast");
+    t.textContent = msg;
+    t.style.display = "block";
+    setTimeout(()=> t.style.display="none", 3200);
+  }
+
+  async function fetchWithTimeout(url, options={}, ms=20000){
+    const ctrl = new AbortController();
+    const t = setTimeout(()=> ctrl.abort(), ms);
+    try{
+      const r = await fetch(url, { ...options, signal: ctrl.signal });
+      return r;
+    } finally {
+      clearTimeout(t);
+    }
+  }
+
+  // ✅ lee equipo desde URL o sessionStorage (backup)
+  function getEquipoFromURLorStorage(){
+    const params = new URLSearchParams(window.location.search);
+    const equipoURL = params.get("equipo");
+
+    if(equipoURL){
+      let clean = equipoURL;
+      try{ clean = decodeURIComponent(equipoURL); }catch(_){}
+      clean = (clean || "").trim();
+      if(clean){
+        sessionStorage.setItem("spectra_equipo", clean);
+        return { value: clean, from: "url" };
+      }
+    }
+
+    const stored = (sessionStorage.getItem("spectra_equipo") || "").trim();
+    if(stored) return { value: stored, from: "storage" };
+
+    return { value: "", from: "" };
+  }
+
+  function renderEquiposList(){
+    const wrap = $("equiposList");
+    wrap.innerHTML = "";
+
+    if(!equiposPedido.length){
+      wrap.innerHTML = `<div class="hint">Aún no agregas equipos. Usa el <b>+</b>.</div>`;
+      return;
+    }
+
+    equiposPedido.forEach((it, idx) => {
+      const div = document.createElement("div");
+      div.className = "item";
+      div.innerHTML = `
+        <div>
+          <div class="itemName">${it.equipo}</div>
+          ${it.extra ? `<div class="itemExtra"><b>Extra:</b> ${it.extra}</div>` : `<div class="itemExtra"><b>Extra:</b> -</div>`}
+        </div>
+        <button class="rmBtn" type="button" data-idx="${idx}">Quitar</button>
+      `;
+      wrap.appendChild(div);
+    });
+
+    // bind remove
+    wrap.querySelectorAll(".rmBtn").forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        const i = parseInt(btn.getAttribute("data-idx"), 10);
+        equiposPedido.splice(i, 1);
+        renderEquiposList();
+      });
+    });
+  }
+
+  function addEquipoActual(){
+    const equipo = ($("equipo").value || "").trim();
+    const extra = ($("extra").value || "").trim();
+
+    if(!equipo || equipo.length < 2){
+      return toast("Escribe un equipo válido antes de presionar + ❗");
+    }
+
+    // evita duplicados exactos (mismo equipo + mismo extra)
+    const key = (equipo + "||" + extra).toLowerCase();
+    const exists = equiposPedido.some(x => (x.equipo + "||" + (x.extra||"")).toLowerCase() === key);
+    if(exists){
+      return toast("Ese equipo ya está agregado ✅");
+    }
+
+    equiposPedido.push({ equipo, extra });
+
+    // opcional: limpiar extra para el siguiente equipo
+    $("extra").value = "";
+    $("equipo").value = "";
+    $("equipo").readOnly = false;
+
+    // limpiar querystring equipo para que no “se pegue”
+    const url = new URL(window.location.href);
+    url.searchParams.delete("equipo");
+    window.history.replaceState({}, "", url.toString());
+    sessionStorage.removeItem("spectra_equipo");
+
+    renderEquiposList();
+    toast("Equipo agregado ✅");
+    $("equipo").focus();
+  }
+
+  // ✅ Autollenar equipo si viene por URL (pero OJO: ahora hay que presionar + para agregarlo)
+  function autofillEquipo(){
+    const info = getEquipoFromURLorStorage();
+    if(!info.value) return;
+
+    $("equipo").value = info.value;
+    $("equipo").readOnly = true;
+    toast(`Equipo seleccionado ✅\n${info.value}\n(ahora presiona + para agregarlo)`);
+  }
+
+  async function loadSession(){
+    try{
+      const r = await fetchWithTimeout("/whoami", { cache:"no-store" }, 12000);
+      const j = await r.json().catch(()=> ({}));
+      if(!r.ok || !j.ok) return toast("No pude leer sesión ❌");
+
+      if(j.role !== "student"){
+        toast("No estás logeado como estudiante ❌");
+        setTimeout(()=> location.href="/login", 800);
+        return;
+      }
+
+      $("nombre").value = j.student_name || "";
+      $("banner_id").value = j.banner_id || "";
+
+      $("sessionInfo").innerHTML = `
+        <span class="chip">Rol: ${j.role}</span>
+        <span class="chip">Nombre: ${j.student_name || "-"}</span>
+        <span class="chip">BannerID: ${j.banner_id || "-"}</span>
+      `;
+    }catch(e){
+      toast("Error de red leyendo sesión ❌");
+    }
+  }
+
+  $("btnInventario").addEventListener("click", ()=>{
+    window.location.href = SHAREPOINT_INVENTARIO_URL;
+  });
+
+  // ✅ plus
+  $("btnAddEquipo").addEventListener("click", addEquipoActual);
+
+  // Enter en Equipo agrega
+  $("equipo").addEventListener("keydown", (e)=>{
+    if(e.key === "Enter") addEquipoActual();
+  });
+
+  $("btnRegistrar").addEventListener("click", async () => {
+    const semestre = ($("semestre").value || "").trim();
+    const semNum = parseInt(semestre, 10);
+
+    if(!semestre || Number.isNaN(semNum) || semNum < 1 || semNum > 12){
+      return toast("Selecciona un semestre válido ❗");
+    }
+
+    // si no agregaron con +, usamos el equipo actual como 1 item (por si se les olvida)
+    if(!equiposPedido.length){
+      const equipo = ($("equipo").value || "").trim();
+      const extra = ($("extra").value || "").trim();
+      if(!equipo) return toast("Agrega al menos 1 equipo con + ❗");
+      equiposPedido = [{ equipo, extra }];
+    }
+
+    $("btnRegistrar").disabled = true;
+
+    try{
+      let okCount = 0;
+      const ids = [];
+
+      // ✅ registra uno por uno (no cambia tu backend)
+      for(const it of equiposPedido){
+        const r = await fetchWithTimeout("/api/lab/prestar", {
+          method:"POST",
+          headers:{"Content-Type":"application/json"},
+          body: JSON.stringify({ semestre, equipo: it.equipo, extra: it.extra })
+        }, 25000);
+
+        const j = await r.json().catch(()=> ({}));
+
+        if(!r.ok || (j && j.ok === false)){
+          const msg = j.error || j.msg || `Error registrando ${it.equipo}`;
+          toast(`❌ Falló: ${it.equipo}\n${msg}`);
+          // seguimos con los demás (para no perder todo)
+          continue;
+        }
+
+        okCount++;
+
+        const id =
+          j.id || j.ID || j.lab_id || j.LAB_ID ||
+          j.item?.ID || j.item?.id || j.data?.ID || j.data?.id || j.result?.ID;
+
+        if(id) ids.push(`${it.equipo}: ${id}`);
+      }
+
+      if(okCount === 0){
+        return; // ya avisamos el error arriba
+      }
+
+      toast(`✅ Solicitud registrada\nEquipos: ${okCount}\n${ids.slice(0,6).join("\n")}${ids.length>6 ? "\n..." : ""}`);
+
+      // limpia
+      $("semestre").value = "";
+      $("equipo").value = "";
+      $("extra").value = "";
+      $("equipo").readOnly = false;
+      equiposPedido = [];
+      renderEquiposList();
+
+    }catch(e){
+      if(String(e).includes("AbortError")){
+        toast("Timeout registrando (n8n no respondió) ⏳");
+      }else{
+        toast("Error de red registrando ❌");
+      }
+    }finally{
+      $("btnRegistrar").disabled = false;
+    }
+  });
+
+  $("btnClearEquipo").addEventListener("click", ()=>{
+    $("equipo").value = "";
+    $("extra").value = "";
+    $("equipo").readOnly = false;
+
+    const url = new URL(window.location.href);
+    url.searchParams.delete("equipo");
+    window.history.replaceState({}, "", url.toString());
+
+    sessionStorage.removeItem("spectra_equipo");
+
+    // limpia también lista
+    equiposPedido = [];
+    renderEquiposList();
+
+    toast("Equipo(s) limpiado(s) ✅");
+    $("equipo").focus();
+  });
+
+  $("btnLogout").addEventListener("click", async ()=>{
+    try{
+      const r = await fetchWithTimeout("/auth/logout", { method:"POST" }, 12000);
+      const j = await r.json().catch(()=> ({}));
+      if(j.ok){
+        location.href = "/login";
+      }else{
+        toast("No pude cerrar sesión ❌");
+      }
+    }catch(e){
+      toast("Error cerrando sesión ❌");
+    }
+  });
+
+  document.addEventListener("DOMContentLoaded", ()=>{
+    renderEquiposList();
+    autofillEquipo();
+    loadSession();
+  });
+</script>
+</body>
+</html>

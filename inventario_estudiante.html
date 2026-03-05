@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Spectra AI — Inventario Estudiante</title>
+
+  <style>
+    :root{
+      --bg:#020617;
+      --card:#0b1224cc;
+      --stroke:#1f2a44;
+      --text:#e5e7eb;
+      --muted:#9ca3af;
+      --cyan:#22d3ee;
+      --purple:#a855f7;
+      --ok:#4ade80;
+      --danger:#f97373;
+      --chip:#111a33;
+      --panel:#061021;
+      --shadow: 0 20px 70px rgba(0,0,0,.55);
+      --radius: 18px;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{
+      font-family:system-ui,-apple-system,Segoe UI,sans-serif;
+      background:
+        radial-gradient(1200px 600px at 15% 10%, rgba(34,211,238,.12), transparent 55%),
+        radial-gradient(900px 500px at 85% 18%, rgba(168,85,247,.12), transparent 60%),
+        radial-gradient(700px 500px at 50% 85%, rgba(236,72,153,.08), transparent 60%),
+        radial-gradient(circle at top, #0b1120 0, #020617 45%, #000 100%);
+      color:var(--text);
+      min-height:100vh;
+      padding:24px;
+    }
+
+    .top{
+      display:flex;align-items:center;justify-content:space-between;
+      gap:12px; margin-bottom:18px; flex-wrap:wrap;
+    }
+    .title{
+      font-size:18px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);
+    }
+    .topRight{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+    .linkBtn{
+      color:var(--cyan);text-decoration:none;font-weight:700;
+      border:1px solid #1b2a3a; padding:10px 14px; border-radius:14px;
+      background:#071026;
+      cursor:pointer;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns: 1fr 380px;
+      gap:18px;
+      align-items:start;
+    }
+
+    .card{
+      background:var(--card);
+      border:1px solid var(--stroke);
+      border-radius:var(--radius);
+      padding:16px;
+      box-shadow:0 10px 30px rgba(0,0,0,.35);
+    }
+    .card h3{
+      font-size:14px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);
+      margin-bottom:10px;
+    }
+
+    .toolbar{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+      justify-content:space-between;
+      margin: 10px 0 14px;
+    }
+
+    .searchWrap{
+      display:flex;
+      gap:10px;
+      flex: 1 1 520px;
+      align-items:center;
+    }
+    .search{
+      width:100%;
+      padding:12px 12px;
+      border-radius:14px;
+      border:1px solid #22304b;
+      background:#050b18;
+      color:var(--text);
+      outline:none;
+    }
+    .select{
+      min-width: 180px;
+      padding:12px 12px;
+      border-radius:14px;
+      border:1px solid #22304b;
+      background:#050b18;
+      color:var(--text);
+      outline:none;
+    }
+    .smallBtn{
+      padding:12px 14px;
+      border-radius:14px;
+      border:1px solid #20314b;
+      background: rgba(34,211,238,.12);
+      color:var(--text);
+      font-weight:800;
+      cursor:pointer;
+      white-space:nowrap;
+    }
+    .smallBtn:hover{ border-color: rgba(34,211,238,.55); }
+
+    .tableWrap{
+      overflow:auto;
+      border-radius: 14px;
+      border: 1px solid #1f2a44;
+      background: rgba(5,11,24,.55);
+    }
+    table{
+      width:100%;
+      border-collapse: collapse;
+      min-width: 760px;
+    }
+    thead th{
+      text-align:left;
+      font-size:12px;
+      letter-spacing:.16em;
+      text-transform:uppercase;
+      color: var(--muted);
+      padding: 12px 12px;
+      border-bottom:1px solid #1f2a44;
+      position: sticky;
+      top: 0;
+      background: rgba(5,11,24,.92);
+      backdrop-filter: blur(8px);
+      z-index: 1;
+    }
+    tbody td{
+      padding: 12px 12px;
+      border-bottom:1px solid rgba(31,42,68,.6);
+      vertical-align: middle;
+    }
+    tbody tr:hover{
+      background: rgba(34,211,238,.06);
+    }
+
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border:1px solid #22304b;
+      background: rgba(17,26,51,.55);
+      color: var(--muted);
+      font-size:12px;
+      white-space: nowrap;
+    }
+    .dot{
+      width:8px;height:8px;border-radius:50%;
+      background: rgba(156,163,175,.7);
+    }
+    .dot.ok{ background: rgba(74,222,128,.9); }
+    .dot.warn{ background: rgba(245,158,11,.9); }
+    .dot.bad{ background: rgba(249,115,115,.9); }
+
+    .qty{
+      font-weight:800;
+      color: var(--text);
+    }
+    .qty.muted{ color: rgba(229,231,235,.65); font-weight:700; }
+
+    .actionBtn{
+      padding:10px 12px;
+      border-radius:14px;
+      border:1px solid #20314b;
+      background: linear-gradient(90deg, rgba(34,211,238,.22), rgba(168,85,247,.12));
+      color:var(--text);
+      font-weight:900;
+      cursor:pointer;
+      white-space: nowrap;
+    }
+    .actionBtn:hover{
+      border-color: rgba(34,211,238,.55);
+      box-shadow: 0 0 18px rgba(34,211,238,.10);
+    }
+    .actionBtn:disabled{
+      opacity:.55;
+      cursor:not-allowed;
+      filter: grayscale(0.2);
+    }
+
+    .side{
+      background:var(--panel);
+      border:1px solid #1f2a44;
+      border-radius:var(--radius);
+      padding:16px;
+      box-shadow:0 10px 30px rgba(0,0,0,.35);
+      min-height:220px;
+    }
+    .chip{
+      display:inline-block;
+      background:var(--chip);
+      border:1px solid #22304b;
+      color:var(--muted);
+      padding:6px 10px;border-radius:999px;
+      font-size:12px;
+      margin:6px 6px 0 0;
+    }
+    .hint{
+      margin-top:10px;
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.35
+    }
+
+    .stats{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+      margin-top:12px;
+    }
+    .stat{
+      border:1px solid #22304b;
+      border-radius:14px;
+      padding:12px;
+      background: rgba(5,11,24,.55);
+    }
+    .stat .k{ font-size:11px; letter-spacing:.14em; text-transform:uppercase; color: var(--muted); }
+    .stat .v{ margin-top:6px; font-size:20px; font-weight:900; }
+
+    .toast{
+      position:fixed; right:18px; bottom:18px;
+      background:#071026;border:1px solid #1f2a44;
+      padding:12px 14px;border-radius:14px;
+      color:var(--text); display:none;
+      box-shadow:0 10px 30px rgba(0,0,0,.4);
+      max-width:520px;
+      line-height:1.35;
+      white-space:pre-line;
+      z-index: 9999;
+    }
+
+    @media (max-width: 980px){
+      .grid{grid-template-columns:1fr}
+      table{ min-width: 640px; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="top">
+    <div class="title">Inventario — Estudiante</div>
+    <div class="topRight">
+      <a class="linkBtn" href="/registro-estudiante">Registrar préstamo</a>
+      <button class="linkBtn" id="btnLogout">Cerrar sesión</button>
+      <a class="linkBtn" href="/login">Ir a Login</a>
+    </div>
+  </div>
+
+  <div class="grid">
+    <!-- TABLA -->
+    <div class="card">
+      <h3>Equipos disponibles</h3>
+
+      <div class="toolbar">
+        <div class="searchWrap">
+          <input id="q" class="search" placeholder="Buscar por nombre (ej: osciloscopio, multímetro, sensor...)" />
+          <select id="cat" class="select">
+            <option value="">Todas las categorías</option>
+          </select>
+          <button class="smallBtn" id="btnRefresh">Actualizar</button>
+        </div>
+      </div>
+
+      <div class="tableWrap">
+        <table>
+          <thead>
+            <tr>
+              <th style="min-width: 260px;">Nombre</th>
+              <th style="min-width: 160px;">Categoría</th>
+              <th style="min-width: 120px;">Total</th>
+              <th style="min-width: 140px;">Disponibles</th>
+              <th style="min-width: 180px;">Acción</th>
+            </tr>
+          </thead>
+          <tbody id="rows">
+            <tr><td colspan="5" style="color:rgba(229,231,235,.7);padding:16px;">Cargando inventario…</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="hint">
+        Tip: presiona <b>Pedir préstamo</b> y te mando a <b>/registro-estudiante</b> con el equipo ya llenado ✅
+      </div>
+    </div>
+
+    <!-- SESION / INFO -->
+    <div class="side">
+      <h3 style="margin-bottom:10px; letter-spacing:.18em; text-transform:uppercase; color:var(--muted); font-size:14px;">
+        Tu sesión
+      </h3>
+      <div id="sessionInfo"></div>
+
+      <div class="stats">
+        <div class="stat">
+          <div class="k">Items</div>
+          <div class="v" id="statItems">—</div>
+        </div>
+        <div class="stat">
+          <div class="k">Con stock</div>
+          <div class="v" id="statStock">—</div>
+        </div>
+      </div>
+
+      <div class="hint" style="margin-top:14px;">
+        Si no carga, revisa que exista el endpoint <b>/api/lab/inventario</b> (o que hayas permitido student).
+      </div>
+
+      <div class="hint" style="margin-top:10px;">
+        <b>Backend esperado:</b><br/>
+        • GET <b>/api/lab/inventario</b> → lista de equipos<br/>
+        • Debe devolver JSON (ok + items o un array)
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+
+  function toast(msg){
+    const t = $("toast");
+    t.textContent = msg;
+    t.style.display = "block";
+    clearTimeout(window.__toastTimer);
+    window.__toastTimer = setTimeout(()=> t.style.display="none", 3200);
+  }
+
+  // --------------------------
+  // ✅ Normalizadores de data
+  // (n8n puede devolver formatos distintos)
+  // --------------------------
+  function normalizeInventoryResponse(payload){
+    // Casos posibles:
+    // 1) { ok:true, items:[...] }
+    // 2) { data:[...] }
+    // 3) [...] (array directo)
+    // 4) { ok:true, rows:[...] }
+    const arr =
+      (payload && Array.isArray(payload) && payload) ||
+      (payload && Array.isArray(payload.items) && payload.items) ||
+      (payload && Array.isArray(payload.data) && payload.data) ||
+      (payload && Array.isArray(payload.rows) && payload.rows) ||
+      [];
+
+    // Normaliza campos a: { nombre, categoria, total, disponibles }
+    return arr.map(x => {
+      const nombre = (x.nombre || x.Nombre || x.name || x.title || x.Título || x.Titulo || x["Nombre Equipo"] || x["Nombre"] || "").toString().trim();
+      const categoria = (x.categoria || x.Categoría || x.Categoria || x.category || x["Categoría"] || "").toString().trim();
+      const totalRaw = x.total ?? x.Total ?? x["Cantidad Total"] ?? x.cantidad_total ?? x.cantidadTotal ?? x.qty_total ?? x.quantity_total;
+      const dispRaw  = x.disponibles ?? x.Disponibles ?? x["Disponibles"] ?? x.stock ?? x.available ?? x.qty_available ?? x.quantity_available;
+
+      const total = Number(totalRaw ?? 0);
+      const disponibles = Number(dispRaw ?? 0);
+
+      return {
+        nombre,
+        categoria,
+        total: Number.isFinite(total) ? total : 0,
+        disponibles: Number.isFinite(disponibles) ? disponibles : 0,
+        _raw: x
+      };
+    }).filter(x => x.nombre); // sin nombre no sirve
+  }
+
+  function stockDot(disponibles){
+    if(disponibles <= 0) return "bad";
+    if(disponibles <= 2) return "warn";
+    return "ok";
+  }
+
+  // --------------------------
+  // ✅ Session
+  // --------------------------
+  async function loadSession(){
+    try{
+      const r = await fetch("/whoami", { cache:"no-store" });
+      const j = await r.json().catch(()=> ({}));
+      if(!r.ok || !j.ok) return toast("No pude leer sesión ❌");
+
+      if(j.role !== "student"){
+        toast("No estás logeado como estudiante ❌");
+        setTimeout(()=> location.href="/login", 800);
+        return;
+      }
+
+      $("sessionInfo").innerHTML = `
+        <span class="chip">Rol: ${j.role}</span>
+        <span class="chip">Nombre: ${j.student_name || "-"}</span>
+        <span class="chip">BannerID: ${j.banner_id || "-"}</span>
+      `;
+    }catch(e){
+      toast("Error de red leyendo sesión ❌");
+    }
+  }
+
+  // --------------------------
+  // ✅ Inventario
+  // --------------------------
+  let INVENTORY = [];
+
+  function fillCategoryFilter(items){
+    const cats = Array.from(new Set(items.map(x => x.categoria).filter(Boolean))).sort((a,b)=>a.localeCompare(b));
+    const sel = $("cat");
+    // limpia opciones excepto la 1era
+    while(sel.options.length > 1) sel.remove(1);
+    cats.forEach(c => {
+      const opt = document.createElement("option");
+      opt.value = c;
+      opt.textContent = c;
+      sel.appendChild(opt);
+    });
+  }
+
+  function render(){
+    const q = ($("q").value || "").trim().toLowerCase();
+    const cat = ($("cat").value || "").trim();
+
+    const filtered = INVENTORY.filter(x => {
+      const okName = !q || x.nombre.toLowerCase().includes(q);
+      const okCat = !cat || (x.categoria === cat);
+      return okName && okCat;
+    });
+
+    // stats
+    $("statItems").textContent = String(filtered.length);
+    $("statStock").textContent = String(filtered.filter(x => x.disponibles > 0).length);
+
+    const tbody = $("rows");
+    tbody.innerHTML = "";
+
+    if(filtered.length === 0){
+      tbody.innerHTML = `<tr><td colspan="5" style="color:rgba(229,231,235,.7);padding:16px;">No hay resultados.</td></tr>`;
+      return;
+    }
+
+    for(const item of filtered){
+      const tr = document.createElement("tr");
+
+      const tdName = document.createElement("td");
+      tdName.innerHTML = `<div style="font-weight:900;">${escapeHtml(item.nombre)}</div>
+                          <div style="margin-top:4px;color:rgba(229,231,235,.6);font-size:12px;">${escapeHtml(item.categoria || "—")}</div>`;
+
+      const tdCat = document.createElement("td");
+      tdCat.innerHTML = `<span class="badge"><span class="dot ${stockDot(item.disponibles)}"></span>${escapeHtml(item.categoria || "—")}</span>`;
+
+      const tdTotal = document.createElement("td");
+      tdTotal.innerHTML = `<span class="qty">${item.total}</span>`;
+
+      const tdDisp = document.createElement("td");
+      tdDisp.innerHTML = `<span class="qty ${item.disponibles<=0 ? "muted":""}">${item.disponibles}</span>`;
+
+      const tdAct = document.createElement("td");
+      const btn = document.createElement("button");
+      btn.className = "actionBtn";
+      btn.textContent = "Pedir préstamo";
+      btn.disabled = item.disponibles <= 0;
+      btn.addEventListener("click", ()=> {
+        // ✅ clave: manda a registro con query param
+        const url = "/registro-estudiante?equipo=" + encodeURIComponent(item.nombre);
+        location.href = url;
+      });
+      tdAct.appendChild(btn);
+
+      tr.appendChild(tdName);
+      tr.appendChild(tdCat);
+      tr.appendChild(tdTotal);
+      tr.appendChild(tdDisp);
+      tr.appendChild(tdAct);
+
+      tbody.appendChild(tr);
+    }
+  }
+
+  function escapeHtml(s){
+    return (s ?? "").toString()
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#039;");
+  }
+
+  async function loadInventory(){
+    const tbody = $("rows");
+    tbody.innerHTML = `<tr><td colspan="5" style="color:rgba(229,231,235,.7);padding:16px;">Cargando inventario…</td></tr>`;
+
+    try{
+      // ✅ IMPORTANTE:
+      // Este endpoint debes crearlo en Flask como te dije:
+      // /api/lab/inventario con require_role("admin","student") y que llame a N8N_LISTAR
+      const r = await fetch("/api/lab/inventario", { cache:"no-store" });
+      const j = await r.json().catch(()=> ({}));
+
+      if(!r.ok){
+        const msg = (j && (j.error || j.msg)) ? (j.error || j.msg) : "No pude cargar inventario ❌";
+        tbody.innerHTML = `<tr><td colspan="5" style="color:rgba(249,115,115,.9);padding:16px;">${escapeHtml(msg)}</td></tr>`;
+        return;
+      }
+
+      INVENTORY = normalizeInventoryResponse(j);
+
+      if(INVENTORY.length === 0){
+        tbody.innerHTML = `<tr><td colspan="5" style="color:rgba(229,231,235,.7);padding:16px;">Inventario vacío.</td></tr>`;
+        $("statItems").textContent = "0";
+        $("statStock").textContent = "0";
+        return;
+      }
+
+      fillCategoryFilter(INVENTORY);
+      render();
+    }catch(e){
+      tbody.innerHTML = `<tr><td colspan="5" style="color:rgba(249,115,115,.9);padding:16px;">Error de red cargando inventario ❌</td></tr>`;
+    }
+  }
+
+  $("q").addEventListener("input", ()=> render());
+  $("cat").addEventListener("change", ()=> render());
+
+  $("btnRefresh").addEventListener("click", ()=> loadInventory());
+
+  $("btnLogout").addEventListener("click", async ()=> {
+    try{
+      const r = await fetch("/auth/logout", { method:"POST" });
+      const j = await r.json().catch(()=> ({}));
+      if(j.ok){
+        location.href = "/login";
+      }else{
+        toast("No pude cerrar sesión ❌");
+      }
+    }catch(e){
+      toast("Error cerrando sesión ❌");
+    }
+  });
+
+  // init
+  loadSession();
+  loadInventory();
+</script>
+</body>
+</html>

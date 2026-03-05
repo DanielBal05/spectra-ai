@@ -1,0 +1,545 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Spectra AI — Registro</title>
+
+  <style>
+    :root{
+      --bg:#060b1a;
+      --panel:#0b1228;
+      --panel2:#0a1023;
+      --line:rgba(120,160,255,.16);
+      --text:#e8f1ff;
+      --muted:rgba(232,241,255,.65);
+      --accent:#6bdcff;
+      --accent2:#b46cff;
+      --danger:#ff3b3b;
+      --ok:#2cffb5;
+      --shadow: 0 18px 60px rgba(0,0,0,.55);
+      --radius:18px;
+    }
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      color:var(--text);
+      background: radial-gradient(1000px 600px at 10% 10%, rgba(107,220,255,.16), transparent 60%),
+                  radial-gradient(900px 500px at 90% 20%, rgba(180,108,255,.12), transparent 55%),
+                  radial-gradient(900px 700px at 50% 90%, rgba(0,255,181,.08), transparent 60%),
+                  var(--bg);
+      min-height:100vh;
+      padding:24px;
+    }
+
+    .topbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:16px;
+      margin-bottom:18px;
+    }
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:14px;
+    }
+    .orb{
+      width:46px;height:46px;border-radius:50%;
+      background: radial-gradient(circle at 30% 30%, #9cf0ff, #3bbcff 45%, #182a66 78%);
+      box-shadow: 0 0 20px rgba(107,220,255,.28);
+    }
+    .brand h1{
+      margin:0;
+      font-size:20px;
+      letter-spacing:.12em;
+      text-transform:uppercase;
+      color:var(--accent);
+      line-height:1.1;
+    }
+    .brand h2{
+      margin:0;
+      font-size:28px;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+    }
+
+    .nav{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .chip{
+      border:1px solid var(--line);
+      background: rgba(10,16,35,.55);
+      padding:10px 14px;
+      border-radius:999px;
+      color:var(--text);
+      text-decoration:none;
+      font-weight:700;
+      letter-spacing:.06em;
+      font-size:12px;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+    }
+    .chip:hover{ border-color:rgba(107,220,255,.35); }
+    .chip.active{
+      border-color:rgba(107,220,255,.55);
+      box-shadow:0 0 0 3px rgba(107,220,255,.12) inset;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns: 420px 1fr;
+      gap:18px;
+    }
+    @media (max-width: 980px){
+      .grid{ grid-template-columns: 1fr; }
+    }
+
+    .card{
+      background: linear-gradient(180deg, rgba(11,18,40,.86), rgba(7,12,28,.86));
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .card-h{
+      padding:16px 16px 10px;
+      border-bottom:1px solid rgba(120,160,255,.12);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .card-h .title{
+      font-weight:900;
+      letter-spacing:.14em;
+      text-transform:uppercase;
+      color:rgba(232,241,255,.82);
+      font-size:12px;
+    }
+    .card-b{ padding:16px; }
+
+    label{
+      display:block;
+      margin:0 0 8px;
+      font-size:12px;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      color:rgba(232,241,255,.70);
+    }
+    input, select{
+      width:100%;
+      padding:12px 12px;
+      border-radius:12px;
+      border:1px solid rgba(120,160,255,.18);
+      background: rgba(10,16,35,.65);
+      color:var(--text);
+      outline:none;
+    }
+    input:focus, select:focus{
+      border-color: rgba(107,220,255,.55);
+      box-shadow:0 0 0 3px rgba(107,220,255,.14);
+    }
+    .row{ display:grid; gap:12px; grid-template-columns: 1fr; }
+    .row2{ display:grid; gap:12px; grid-template-columns: 1fr 1fr; }
+    @media(max-width:520px){ .row2{ grid-template-columns:1fr; } }
+
+    .btnbar{
+      display:flex;
+      gap:10px;
+      margin-top:14px;
+      flex-wrap:wrap;
+    }
+    .btn{
+      cursor:pointer;
+      border:1px solid rgba(120,160,255,.22);
+      background: rgba(10,16,35,.70);
+      color:var(--text);
+      padding:12px 14px;
+      border-radius:14px;
+      font-weight:900;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      font-size:12px;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+    }
+    .btn.primary{
+      border-color: rgba(107,220,255,.55);
+      background: radial-gradient(700px 120px at 20% 10%, rgba(107,220,255,.22), transparent 60%),
+                  rgba(10,16,35,.82);
+    }
+    .btn.danger{
+      border-color: rgba(255,59,59,.55);
+    }
+    .btn:disabled{
+      opacity:.6;
+      cursor:not-allowed;
+    }
+
+    .hint{
+      margin-top:10px;
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.45;
+    }
+
+    table{
+      width:100%;
+      border-collapse:separate;
+      border-spacing:0;
+      overflow:hidden;
+      border-radius:14px;
+      border:1px solid rgba(120,160,255,.14);
+    }
+    thead th{
+      text-align:left;
+      padding:12px 12px;
+      font-size:12px;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      color:rgba(232,241,255,.75);
+      background: rgba(10,16,35,.72);
+      border-bottom:1px solid rgba(120,160,255,.12);
+    }
+    tbody td{
+      padding:12px 12px;
+      border-bottom:1px solid rgba(120,160,255,.08);
+      color:rgba(232,241,255,.9);
+      font-size:14px;
+    }
+    tbody tr:hover td{ background: rgba(107,220,255,.06); }
+    .badge{
+      display:inline-flex;
+      padding:6px 10px;
+      border-radius:999px;
+      font-size:12px;
+      font-weight:900;
+      letter-spacing:.06em;
+      border:1px solid rgba(120,160,255,.18);
+      background: rgba(10,16,35,.55);
+    }
+    .badge.ok{ border-color: rgba(44,255,181,.45); color: rgba(44,255,181,.95); }
+    .badge.warn{ border-color: rgba(255,200,60,.45); color: rgba(255,210,90,.95); }
+    .muted{ color: var(--muted); font-size:13px; }
+    .mini{
+      width:42px;height:42px;border-radius:50%;
+      border:1px solid rgba(120,160,255,.22);
+      background: rgba(10,16,35,.62);
+      display:flex;align-items:center;justify-content:center;
+      cursor:pointer;
+    }
+    .mini:hover{ border-color: rgba(107,220,255,.42); }
+    .right-actions{ display:flex; align-items:center; gap:10px; }
+
+    .toast{
+      position:fixed;
+      right:18px;
+      bottom:18px;
+      background: rgba(10,16,35,.92);
+      border:1px solid rgba(120,160,255,.20);
+      border-radius:14px;
+      padding:12px 14px;
+      color:var(--text);
+      box-shadow: var(--shadow);
+      max-width:360px;
+      display:none;
+    }
+    .toast.show{ display:block; }
+    .toast .t{ font-weight:900; letter-spacing:.06em; }
+    .toast .d{ color:var(--muted); margin-top:4px; font-size:13px; }
+  </style>
+</head>
+
+<body>
+  <div class="topbar">
+    <div class="brand">
+      <div class="orb"></div>
+      <div>
+        <h1>Interfaz de voz</h1>
+        <h2>Spectra AI</h2>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <a class="chip" href="/">🏠 Core</a>
+      <a class="chip" href="/reminders">🗓️ Recordatorios</a>
+      <a class="chip active" href="/registro">🧾 Registro</a>
+    </nav>
+  </div>
+
+  <div class="grid">
+    <!-- FORM -->
+    <div class="card">
+      <div class="card-h">
+        <div class="title">Registrar préstamo</div>
+        <div class="right-actions">
+          <button class="mini" id="btnReload" title="Recargar registro">⟳</button>
+        </div>
+      </div>
+      <div class="card-b">
+        <div class="row">
+          <div>
+            <label for="nombre">Nombre</label>
+            <input id="nombre" placeholder="Ej: Juan Perez" />
+          </div>
+
+          <div class="row2">
+            <div>
+              <label for="semestre">Semestre</label>
+              <select id="semestre">
+                <option value="">Selecciona...</option>
+                <option>1</option><option>2</option><option>3</option><option>4</option>
+                <option>5</option><option>6</option><option>7</option><option>8</option>
+                <option>9</option><option>10</option>
+              </select>
+            </div>
+            <div>
+              <label for="equipo">Equipo</label>
+              <select id="equipo">
+                <option value="">Selecciona...</option>
+                <option>Multimetro</option>
+                <option>Osciloscopio</option>
+                <option>Fuente DC</option>
+                <option>Generador de funciones</option>
+                <option>Protoboard</option>
+                <option>Cables</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="btnbar">
+            <button class="btn primary" id="btnPrestar">➕ Registrar préstamo</button>
+            <button class="btn" id="btnLimpiar">🧽 Limpiar</button>
+          </div>
+
+          <div class="hint">
+            La <b>fecha</b> y el <b>ID</b> los asigna n8n automáticamente. <br/>
+            Luego, en la tabla, puedes presionar <b>Devuelto</b> para cambiar el estado en Google Sheets.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TABLE -->
+    <div class="card">
+      <div class="card-h">
+        <div class="title">Registro (Google Sheets)</div>
+        <div class="right-actions">
+          <span class="muted" id="statusText">Listo.</span>
+        </div>
+      </div>
+      <div class="card-b">
+        <div class="muted" style="margin:0 0 10px;">
+          Tip: solo muestra botón <b>Devuelto</b> cuando el estado está en <b>Prestado</b>.
+        </div>
+
+        <div style="overflow:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Fecha</th>
+                <th>Nombre</th>
+                <th>Sem</th>
+                <th>Equipo</th>
+                <th>Estado</th>
+                <th>Acción</th>
+              </tr>
+            </thead>
+            <tbody id="tbody">
+              <tr>
+                <td colspan="7" class="muted">Cargando...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">
+    <div class="t" id="toastT">OK</div>
+    <div class="d" id="toastD"></div>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    function toast(title, desc=""){
+      $("toastT").textContent = title;
+      $("toastD").textContent = desc;
+      $("toast").classList.add("show");
+      setTimeout(()=> $("toast").classList.remove("show"), 3000);
+    }
+
+    function setStatus(msg){
+      $("statusText").textContent = msg;
+    }
+
+    function getEstado(item){
+      // Tu sheet tiene la columna "Prestado/ Devuelto"
+      return item["Prestado/ Devuelto"] || item["Prestado/Devuelto"] || item["estado"] || "";
+    }
+
+    function renderRows(items){
+      const tbody = $("tbody");
+      tbody.innerHTML = "";
+
+      if(!items || !items.length){
+        tbody.innerHTML = `<tr><td colspan="7" class="muted">No hay registros.</td></tr>`;
+        return;
+      }
+
+      for(const it of items){
+        const id = it.ID || it.id || "";
+        const fecha = it.Fecha || it.fecha || "";
+        const nombre = it.Nombre || it.nombre || "";
+        const sem = it.Semestre ?? it.semestre ?? "";
+        const equipo = it.Equipo || it.equipo || "";
+        const estado = getEstado(it);
+
+        const isPrestado = (String(estado).toLowerCase() === "prestado");
+        const badgeClass = isPrestado ? "warn" : "ok";
+
+        const btn = isPrestado && id
+          ? `<button class="btn danger" data-id="${id}">✅ Devuelto</button>`
+          : `<span class="muted">—</span>`;
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td><span class="muted">${id || "—"}</span></td>
+          <td class="muted">${fecha || "—"}</td>
+          <td>${nombre || "—"}</td>
+          <td class="muted">${sem || "—"}</td>
+          <td>${equipo || "—"}</td>
+          <td><span class="badge ${badgeClass}">${estado || "—"}</span></td>
+          <td>${btn}</td>
+        `;
+        tbody.appendChild(tr);
+      }
+
+      // listeners de botones Devuelto
+      tbody.querySelectorAll("button[data-id]").forEach(btn=>{
+        btn.addEventListener("click", async ()=>{
+          const id = btn.getAttribute("data-id");
+          await devolver(id);
+        });
+      });
+    }
+
+    async function listar(){
+      setStatus("Cargando registro...");
+      try{
+        const r = await fetch("/api/lab/listar");
+        const data = await r.json();
+        if(!r.ok || !data.ok){
+          toast("Error", data.error || "No se pudo listar");
+          setStatus("Error al cargar.");
+          renderRows([]);
+          return;
+        }
+        renderRows(data.items || []);
+        setStatus(`Listo. (${(data.items||[]).length} registros)`);
+      }catch(e){
+        toast("Error", "Fallo de red al listar");
+        setStatus("Error de red.");
+        renderRows([]);
+      }
+    }
+
+    async function prestar(){
+      const nombre = $("nombre").value.trim();
+      const semestre = $("semestre").value;
+      const equipo = $("equipo").value;
+
+      if(!nombre || !semestre || !equipo){
+        toast("Faltan datos", "Completa nombre, semestre y equipo.");
+        return;
+      }
+
+      setStatus("Registrando préstamo...");
+      $("btnPrestar").disabled = true;
+
+      try{
+        const r = await fetch("/api/lab/prestar", {
+          method:"POST",
+          headers:{"Content-Type":"application/json"},
+          body: JSON.stringify({ nombre, semestre, equipo })
+        });
+        const data = await r.json();
+
+        if(!r.ok || !data.ok){
+          toast("Error", data.error || data.message || "No se pudo registrar");
+          setStatus("Error al registrar.");
+          return;
+        }
+
+        toast("Préstamo registrado ✅", "Actualizando tabla...");
+        $("nombre").value = "";
+        $("semestre").value = "";
+        $("equipo").value = "";
+        await listar();
+
+      }catch(e){
+        toast("Error", "Fallo de red al registrar");
+        setStatus("Error de red.");
+      }finally{
+        $("btnPrestar").disabled = false;
+        setStatus("Listo.");
+      }
+    }
+
+    async function devolver(id){
+      if(!id){
+        toast("Error", "ID inválido");
+        return;
+      }
+
+      setStatus("Marcando como devuelto...");
+      try{
+        const r = await fetch("/api/lab/devolver", {
+          method:"POST",
+          headers:{"Content-Type":"application/json"},
+          body: JSON.stringify({ id })
+        });
+        const data = await r.json();
+
+        if(!r.ok || !data.ok){
+          toast("Error", data.error || data.message || "No se pudo devolver");
+          setStatus("Error al devolver.");
+          return;
+        }
+
+        toast("Devuelto ✅", "Actualizando tabla...");
+        await listar();
+
+      }catch(e){
+        toast("Error", "Fallo de red al devolver");
+        setStatus("Error de red.");
+      }finally{
+        setStatus("Listo.");
+      }
+    }
+
+    // Eventos
+    $("btnPrestar").addEventListener("click", prestar);
+    $("btnReload").addEventListener("click", listar);
+    $("btnLimpiar").addEventListener("click", ()=>{
+      $("nombre").value = "";
+      $("semestre").value = "";
+      $("equipo").value = "";
+      toast("Listo", "Campos limpiados.");
+    });
+
+    // Inicio
+    listar();
+  </script>
+</body>
+</html>
