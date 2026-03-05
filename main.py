@@ -97,16 +97,7 @@ app = FastAPI(
     swagger_ui_parameters={"tryItOutEnabled": True},
 )
 
-from fastapi.responses import PlainTextResponse
-import traceback
 
-@app.get("/debug/openapi", response_class=PlainTextResponse)
-def debug_openapi():
-    try:
-        schema = app.openapi()
-        return "OK ✅ OpenAPI generado. Keys: " + ", ".join(list(schema.keys()))
-    except Exception:
-        return traceback.format_exc()
 
 app.add_middleware(
     CORSMiddleware,
@@ -1354,20 +1345,39 @@ def ask(req: AskReq):
         f"Asistente:"
     )
 
+    # ✅ Intentar responder con Ollama, pero sin tumbar Render si no existe
     try:
         raw_answer = ask_ollama(prompt)
         answer = compact_answer(raw_answer, max_chars=max_chars)
-    except HTTPException as e:
+
+    except Exception as e:
+        # Log para Render (esto te aparece en Logs)
+        print("❌ /ask error:", repr(e))
+
+        # ✅ Fallback 1: si había analytics, responde con eso
         if analytics_obj:
-            answer = compact_answer(build_answer_from_analytics_text(analytics_obj, detailed=detailed), max_chars=max_chars)
+            answer = compact_answer(
+                build_answer_from_analytics_text(analytics_obj, detailed=detailed),
+                max_chars=max_chars
+            )
         else:
-            raise e
+            # ✅ Fallback 2: responde algo claro (sin 500)
+            answer = compact_answer(
+                "Spectra: En este servidor no hay motor de IA activo (Ollama no está disponible). "
+                "Configura un OLLAMA remoto o usa Gemini con GEMINI_API_KEY.",
+                max_chars=max_chars
+            )
 
     save_chat_event(
         "ask",
         user_text=req.question,
         assistant_text=answer,
-        meta={"used_web": bool(web_ctx), "used_sensors": bool(sensores_ctx), "detailed": detailed},
+        meta={
+            "used_web": bool(web_ctx),
+            "used_sensors": bool(sensores_ctx),
+            "detailed": detailed,
+            "ollama_ok": True  # ojo: aquí no sabemos si falló o no, si quieres lo afinamos
+        },
         chat_id=chat_id
     )
 
@@ -1379,7 +1389,6 @@ def ask(req: AskReq):
         "detailed": detailed,
         "chat_id": chat_id
     }
-
 # ===============================
 # ✅ /talk (voz)
 # ===============================
