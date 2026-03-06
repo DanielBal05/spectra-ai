@@ -58,7 +58,12 @@
       font-size:14px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);
       margin-bottom:10px;
     }
-    label{display:block;font-size:12px;color:var(--muted);margin:10px 0 6px}
+    label{
+      display:block;
+      font-size:12px;
+      color:var(--muted);
+      margin:10px 0 6px;
+    }
     select, input, textarea{
       width:100%;
       padding:12px 12px;
@@ -68,12 +73,17 @@
       color:var(--text);
       outline:none;
     }
-    textarea{ min-height:78px; resize:vertical; }
+    textarea{
+      min-height:78px;
+      resize:vertical;
+    }
     input[disabled]{
       opacity:.85;
       cursor:not-allowed;
     }
-    select:focus, input:focus, textarea:focus{border-color:rgba(34,211,238,.45)}
+    select:focus, input:focus, textarea:focus{
+      border-color:rgba(34,211,238,.45)
+    }
     .btn{
       width:100%;
       margin-top:14px;
@@ -85,8 +95,10 @@
       font-weight:800;
       cursor:pointer;
     }
-    .btn:disabled{opacity:.55;cursor:not-allowed}
-
+    .btn:disabled{
+      opacity:.55;
+      cursor:not-allowed
+    }
     .btnGhost{
       width:100%;
       margin-top:10px;
@@ -98,14 +110,12 @@
       font-weight:800;
       cursor:pointer;
     }
-
     .hint{
       margin-top:10px;
       color:var(--muted);
       font-size:12px;
       line-height:1.35
     }
-
     .card2{
       background:var(--panel);
       border:1px solid #1f2a44;
@@ -114,22 +124,26 @@
       box-shadow:0 10px 30px rgba(0,0,0,.35);
       min-height:220px;
     }
-
     .chip{
       display:inline-block;
       background:var(--chip);
       border:1px solid #22304b;
       color:var(--muted);
-      padding:6px 10px;border-radius:999px;
+      padding:6px 10px;
+      border-radius:999px;
       font-size:12px;
       margin:6px 6px 0 0;
     }
-
     .toast{
-      position:fixed; right:18px; bottom:18px;
-      background:#071026;border:1px solid #1f2a44;
-      padding:12px 14px;border-radius:14px;
-      color:var(--text); display:none;
+      position:fixed;
+      right:18px;
+      bottom:18px;
+      background:#071026;
+      border:1px solid #1f2a44;
+      padding:12px 14px;
+      border-radius:14px;
+      color:var(--text);
+      display:none;
       box-shadow:0 10px 30px rgba(0,0,0,.4);
       max-width:520px;
       line-height:1.35;
@@ -137,7 +151,6 @@
       z-index:50;
     }
 
-    /* ✅ “Selector” de equipo + botón */
     .row{
       display:flex;
       gap:10px;
@@ -157,70 +170,69 @@
       line-height:1;
     }
 
-    /* ✅ Contenedor de “cuadraditos” */
-    .listBox{
-      margin-top:10px;
+    .equiposBox{
+      margin-top:12px;
       border:1px solid #22304b;
       background:#071026;
       border-radius:14px;
-      padding:10px;
+      padding:12px;
     }
-    .listTitle{
+    .equiposTitle{
       font-size:12px;
       color:var(--muted);
-      margin-bottom:8px;
+      margin-bottom:10px;
       letter-spacing:.12em;
       text-transform:uppercase;
     }
-
-    /* ✅ Tarjeta de equipo (cuadradito) */
-    .equipCard{
-      border:1px solid #22304b;
-      border-radius:14px;
-      padding:10px;
-      background:rgba(5,11,24,.55);
-      margin-bottom:10px;
+    .equipoItem{
+      margin-bottom:12px;
     }
-    .equipCard:last-child{ margin-bottom:0; }
-
-    .equipTop{
+    .equipoItem:last-child{
+      margin-bottom:0;
+    }
+    .equipoHead{
       display:flex;
-      gap:10px;
       align-items:center;
       justify-content:space-between;
-      margin-bottom:8px;
+      gap:10px;
+      margin-bottom:6px;
     }
-    .equipIdx{
+    .equipoMiniLabel{
       font-size:12px;
       color:var(--muted);
-      letter-spacing:.12em;
-      text-transform:uppercase;
+    }
+    .equipoRow{
+      display:flex;
+      gap:8px;
+      align-items:center;
+    }
+    .equipoInput{
+      flex:1;
     }
     .rmBtn{
+      flex:0 0 auto;
       border:1px solid #22304b;
       background:#050b18;
       color:#fca5a5;
       font-weight:900;
       border-radius:12px;
-      padding:8px 10px;
+      padding:10px 12px;
       cursor:pointer;
-      flex:0 0 auto;
     }
 
-    .miniLabel{
+    .extraBox{
+      margin-top:14px;
+      border:1px dashed rgba(34,211,238,.35);
+      border-radius:14px;
+      padding:10px;
+      background:rgba(7,16,38,.45);
+    }
+    .extraTitle{
       font-size:12px;
       color:var(--muted);
-      margin:8px 0 6px;
-      display:block;
-    }
-    .lockedBadge{
-      font-size:11px;
-      color:#86efac;
-      border:1px solid rgba(74,222,128,.25);
-      background:rgba(74,222,128,.08);
-      padding:4px 8px;
-      border-radius:999px;
-      margin-left:8px;
+      letter-spacing:.12em;
+      text-transform:uppercase;
+      margin-bottom:8px;
     }
 
     @media (max-width: 980px){
@@ -256,23 +268,29 @@
         <option>5</option><option>6</option><option>7</option><option>8</option>
       </select>
 
-      <!-- ✅ Selector “actual” (lo que está escribiendo / lo que llega del inventario) -->
-      <label>Equipo (selección actual)</label>
+      <label>Equipo</label>
       <div class="row">
-        <input id="equipo" name="equipo" type="text" placeholder="Ej: Osciloscopio" autocomplete="off" />
-        <button class="plusBtn" id="btnAddEquipo" type="button" title="Agregar y crear otro recuadro">+</button>
+        <input id="equipo" name="equipo" type="text" placeholder="Ej: Multímetro" autocomplete="off" />
+        <button class="plusBtn" id="btnAddEquipo" type="button" title="Agregar otro equipo">+</button>
       </div>
 
       <div class="hint" style="margin-top:8px;">
-        ✅ Presiona <b>+</b> para “guardar” este equipo en un recuadro abajo y crear el siguiente.
+        Selecciona un equipo desde Inventario. Luego presiona <b>+</b> para crear otro espacio debajo sin borrar el anterior.
       </div>
 
-      <!-- ✅ Cuadraditos dinámicos -->
-      <div class="listBox" id="listBox">
-        <div class="listTitle">Equipos agregados a esta solicitud</div>
-        <div id="equipCards"></div>
+      <div class="equiposBox">
+        <div class="equiposTitle">Equipos agregados a esta solicitud</div>
+        <div id="equiposList"></div>
         <div class="hint" style="margin-top:8px;">
-          Cada recuadro se manda como un registro individual al registrar.
+          Cada equipo se enviará como un registro individual, pero seguirá perteneciendo a la misma solicitud del estudiante.
+        </div>
+      </div>
+
+      <div class="extraBox">
+        <div class="extraTitle">Extra</div>
+        <textarea id="extraGeneral" placeholder="Ej: con puntas / con cables / etc."></textarea>
+        <div class="hint" style="margin-top:8px;">
+          Este campo es general para toda la solicitud y se enviará en una nueva columna de Google Sheets.
         </div>
       </div>
 
@@ -281,7 +299,7 @@
 
       <div class="hint">
         Tu <b>Nombre</b> e <b>ID Banner</b> se toman del login.<br/>
-        Solo llenas <b>Semestre</b> y agregas <b>Equipo(s)</b> con el <b>+</b> ✅
+        Solo llenas <b>Semestre</b>, agregas <b>Equipo(s)</b> con el <b>+</b> y opcionalmente completas <b>Extra</b>.
       </div>
     </div>
 
@@ -307,9 +325,8 @@
   const SHAREPOINT_INVENTARIO_URL =
     "https://udlaec.sharepoint.com/sites/InventarioLaboratorioElectrnica/Lists/Inventario/AllItems.aspx?env=WebViewList";
 
-  // ✅ “cuadraditos” (tarjetas) de equipos
-  // { equipo: string, extra: string, locked: boolean }
-  let equiposPedido = [];
+  // Solo guardamos nombres de equipos en orden
+  let equiposPedido = [""];
 
   function toast(msg){
     const t = $("toast");
@@ -329,7 +346,15 @@
     }
   }
 
-  // ✅ lee equipo desde URL o sessionStorage (backup)
+  function escapeHtml(str){
+    return String(str || "")
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#039;");
+  }
+
   function getEquipoFromURLorStorage(){
     const params = new URLSearchParams(window.location.search);
     const equipoURL = params.get("equipo");
@@ -357,166 +382,129 @@
     sessionStorage.removeItem("spectra_equipo");
   }
 
-  // ✅ Render de “cuadraditos”
-  function renderEquipCards(){
-    const wrap = $("equipCards");
+  function renderEquiposList(){
+    const wrap = $("equiposList");
     wrap.innerHTML = "";
 
+    const equiposConValor = equiposPedido.filter(x => (x || "").trim() !== "");
+
     if(!equiposPedido.length){
-      wrap.innerHTML = `<div class="hint">Aún no agregas equipos. Usa el <b>+</b>.</div>`;
-      return;
+      equiposPedido = [""];
     }
 
-    equiposPedido.forEach((it, idx) => {
+    equiposPedido.forEach((equipo, idx) => {
+      const isLast = idx === equiposPedido.length - 1;
+
       const div = document.createElement("div");
-      div.className = "equipCard";
+      div.className = "equipoItem";
       div.innerHTML = `
-        <div class="equipTop">
-          <div class="equipIdx">
-            Equipo ${idx + 1}
-            ${it.locked ? `<span class="lockedBadge">OK</span>` : `<span class="lockedBadge" style="color:#93c5fd;border-color:rgba(147,197,253,.25);background:rgba(147,197,253,.08)">EDIT</span>`}
-          </div>
-          <button class="rmBtn" type="button" data-idx="${idx}">Quitar</button>
+        <div class="equipoHead">
+          <div class="equipoMiniLabel">${idx === 0 ? "Equipo" : "Equipo " + (idx + 1)}</div>
+          ${equiposPedido.length > 1 || (equipo || "").trim() !== "" ? `<button class="rmBtn" type="button" data-idx="${idx}">Quitar</button>` : ""}
         </div>
-
-        <label class="miniLabel">Equipo</label>
-        <input class="equipInput" data-idx="${idx}" type="text" placeholder="Ej: Multímetro" value="${escapeHtml(it.equipo || "")}" ${it.locked ? "readonly" : ""} />
-
-        <label class="miniLabel">Extra</label>
-        <textarea class="extraInput" data-idx="${idx}" placeholder="Ej: con puntas / con cables / etc.">${escapeHtml(it.extra || "")}</textarea>
-
-        <div class="hint" style="margin-top:8px;">
-          ${it.locked
-            ? "✅ Este equipo ya quedó guardado. Si quieres cambiarlo, quítalo y vuelve a agregar."
-            : "📝 Puedes editar. Presiona <b>+</b> arriba para guardarlo y crear el siguiente."
-          }
+        <div class="equipoRow">
+          <input
+            class="equipoInput"
+            type="text"
+            data-idx="${idx}"
+            placeholder="Ej: Multímetro"
+            value="${escapeHtml(equipo)}"
+            ${!isLast && (equipo || "").trim() !== "" ? "readonly" : ""}
+          />
         </div>
       `;
       wrap.appendChild(div);
     });
 
-    // Bind quitar
-    wrap.querySelectorAll(".rmBtn").forEach(btn=>{
-      btn.addEventListener("click", ()=>{
-        const i = parseInt(btn.getAttribute("data-idx"), 10);
-        equiposPedido.splice(i, 1);
-        renderEquipCards();
-      });
-    });
-
-    // Bind cambios
-    wrap.querySelectorAll(".equipInput").forEach(inp=>{
+    wrap.querySelectorAll(".equipoInput").forEach(inp => {
       inp.addEventListener("input", ()=>{
         const i = parseInt(inp.getAttribute("data-idx"), 10);
-        if (equiposPedido[i]) equiposPedido[i].equipo = inp.value;
+        if(Number.isInteger(i) && i >= 0 && i < equiposPedido.length){
+          equiposPedido[i] = inp.value;
+        }
       });
     });
-    wrap.querySelectorAll(".extraInput").forEach(tx=>{
-      tx.addEventListener("input", ()=>{
-        const i = parseInt(tx.getAttribute("data-idx"), 10);
-        if (equiposPedido[i]) equiposPedido[i].extra = tx.value;
+
+    wrap.querySelectorAll(".rmBtn").forEach(btn => {
+      btn.addEventListener("click", ()=>{
+        const i = parseInt(btn.getAttribute("data-idx"), 10);
+        if(Number.isInteger(i) && i >= 0 && i < equiposPedido.length){
+          equiposPedido.splice(i, 1);
+
+          if(equiposPedido.length === 0){
+            equiposPedido = [""];
+          }
+
+          renderEquiposList();
+        }
       });
     });
+
+    if(equiposConValor.length === 0 && equiposPedido.length === 0){
+      equiposPedido = [""];
+      renderEquiposList();
+    }
   }
 
-  // ✅ helper para no romper HTML
-  function escapeHtml(str){
-    return String(str)
-      .replaceAll("&","&amp;")
-      .replaceAll("<","&lt;")
-      .replaceAll(">","&gt;")
-      .replaceAll('"',"&quot;")
-      .replaceAll("'","&#039;");
-  }
+  function addNuevoEspacioEquipo(){
+    const ultimoIdx = equiposPedido.length - 1;
+    const ultimoValor = (equiposPedido[ultimoIdx] || "").trim();
 
-  // ✅ encuentra el primer recuadro “editable” (no locked) y preferiblemente vacío
-  function findTargetEditableIndex(){
-    // 1) editable y vacío
-    let idx = equiposPedido.findIndex(x => !x.locked && !(x.equipo || "").trim());
-    if(idx !== -1) return idx;
+    if(!ultimoValor){
+      $("equipo").value = "";
+      $("equipo").readOnly = false;
+      renderEquiposList();
 
-    // 2) cualquier editable
-    idx = equiposPedido.findIndex(x => !x.locked);
-    if(idx !== -1) return idx;
+      setTimeout(()=>{
+        const inputs = document.querySelectorAll(".equipoInput");
+        const last = inputs[inputs.length - 1];
+        if(last) last.focus();
+      }, 50);
 
-    return -1;
-  }
-
-  // ✅ asegura que exista al menos 1 recuadro editable
-  function ensureEditableCard(){
-    const idx = findTargetEditableIndex();
-    if(idx !== -1) return idx;
-    equiposPedido.push({ equipo:"", extra:"", locked:false });
-    return equiposPedido.length - 1;
-  }
-
-  // ✅ toma lo del input de arriba y lo “convierte” en un recuadro guardado + crea otro
-  function addEquipoDesdeSelector(){
-    const equipo = ($("equipo").value || "").trim();
-    if(!equipo || equipo.length < 2){
-      return toast("Escribe un equipo válido antes de presionar + ❗");
+      return toast("Primero selecciona o escribe un equipo antes de presionar + ❗");
     }
 
-    // Coloca esto en el recuadro editable actual (o crea uno)
-    const idx = ensureEditableCard();
-
-    // Evita duplicados exactos (equipo + extra)
-    const extraNow = (equiposPedido[idx].extra || "").trim();
-    const newKey = (equipo + "||" + extraNow).toLowerCase();
-    const exists = equiposPedido.some((x, k) => k !== idx && ((x.equipo||"") + "||" + (x.extra||"")).toLowerCase() === newKey);
-    if(exists){
-      return toast("Ese equipo ya está agregado ✅");
-    }
-
-    equiposPedido[idx].equipo = equipo;
-    equiposPedido[idx].locked = true; // ✅ guardado
-
-    // Limpia selector de arriba y crea el siguiente recuadro editable
+    equiposPedido.push("");
     $("equipo").value = "";
     $("equipo").readOnly = false;
 
-    // Crea uno nuevo editable al final
-    equiposPedido.push({ equipo:"", extra:"", locked:false });
+    renderEquiposList();
 
-    // Limpia query/storage para que no “se pegue”
-    clearEquipoQueryAndStorage();
-
-    renderEquipCards();
-    toast("Equipo agregado ✅");
-
-    // Focus al input del último (editable)
     setTimeout(()=>{
-      const wrap = $("equipCards");
-      const inputs = wrap.querySelectorAll(".equipInput");
+      const inputs = document.querySelectorAll(".equipoInput");
       const last = inputs[inputs.length - 1];
       if(last) last.focus();
     }, 50);
+
+    toast("Nuevo espacio de equipo creado ✅");
   }
 
-  // ✅ Autollenar: lo que venga de SharePoint va al primer recuadro vacío/editable
-  function autofillEquipoIntoCard(){
+  function autofillEquipoEnUltimoEspacio(){
     const info = getEquipoFromURLorStorage();
     if(!info.value) return;
 
-    const idx = ensureEditableCard();
-
-    // Si el recuadro editable ya tiene algo, creamos uno nuevo para no sobreescribir
-    if((equiposPedido[idx].equipo || "").trim()){
-      equiposPedido.push({ equipo:"", extra:"", locked:false });
+    if(!equiposPedido.length){
+      equiposPedido = [""];
     }
 
-    const targetIdx = findTargetEditableIndex();
-    equiposPedido[targetIdx].equipo = info.value;
+    const lastIdx = equiposPedido.length - 1;
+    const lastValue = (equiposPedido[lastIdx] || "").trim();
 
-    renderEquipCards();
+    // Si el último ya tiene algo, crear uno nuevo abajo
+    if(lastValue){
+      equiposPedido.push("");
+    }
 
-    toast(`Equipo seleccionado ✅\n${info.value}\n(pon Extra si quieres y presiona + para crear otro)`);
+    const targetIdx = equiposPedido.length - 1;
+    equiposPedido[targetIdx] = info.value;
 
-    // Ponlo también en el selector visual de arriba (solo como espejo)
+    renderEquiposList();
+
     $("equipo").value = info.value;
     $("equipo").readOnly = true;
 
-    // Limpia query para que si refresca no se repita infinito
+    toast(`Equipo seleccionado ✅\n${info.value}`);
+
     clearEquipoQueryAndStorage();
   }
 
@@ -549,47 +537,30 @@
     window.location.href = SHAREPOINT_INVENTARIO_URL;
   });
 
-  // ✅ plus
-  $("btnAddEquipo").addEventListener("click", addEquipoDesdeSelector);
+  $("btnAddEquipo").addEventListener("click", addNuevoEspacioEquipo);
 
-  // Enter en selector agrega
   $("equipo").addEventListener("keydown", (e)=>{
-    if(e.key === "Enter") addEquipoDesdeSelector();
+    if(e.key === "Enter"){
+      e.preventDefault();
+      addNuevoEspacioEquipo();
+    }
   });
 
   $("btnRegistrar").addEventListener("click", async () => {
     const semestre = ($("semestre").value || "").trim();
     const semNum = parseInt(semestre, 10);
+    const extraGeneral = ($("extraGeneral").value || "").trim();
 
     if(!semestre || Number.isNaN(semNum) || semNum < 1 || semNum > 12){
       return toast("Selecciona un semestre válido ❗");
     }
 
-    // Construye lista final:
-    // - Todos los locked con equipo
-    // - Si hay uno editable con equipo (por si no aplastó +), lo incluimos también
-    const finalEquipos = [];
+    const finalEquipos = equiposPedido
+      .map(x => (x || "").trim())
+      .filter(x => x.length > 0);
 
-    for(const it of equiposPedido){
-      const eq = (it.equipo || "").trim();
-      const ex = (it.extra || "").trim();
-      if(it.locked && eq) finalEquipos.push({ equipo:eq, extra:ex });
-    }
-
-    // fallback: si el último editable tiene algo, lo manda también
-    const editableIdx = equiposPedido.findIndex(x => !x.locked && (x.equipo || "").trim());
-    if(editableIdx !== -1){
-      finalEquipos.push({
-        equipo: (equiposPedido[editableIdx].equipo || "").trim(),
-        extra: (equiposPedido[editableIdx].extra || "").trim()
-      });
-    }
-
-    // Si no hay nada en tarjetas, usamos el selector de arriba como último fallback
     if(finalEquipos.length === 0){
-      const equipoSel = ($("equipo").value || "").trim();
-      if(!equipoSel) return toast("Agrega al menos 1 equipo con + ❗");
-      finalEquipos.push({ equipo: equipoSel, extra: "" });
+      return toast("Agrega al menos 1 equipo ❗");
     }
 
     $("btnRegistrar").disabled = true;
@@ -598,18 +569,22 @@
       let okCount = 0;
       const ids = [];
 
-      for(const it of finalEquipos){
+      for(const equipo of finalEquipos){
         const r = await fetchWithTimeout("/api/lab/prestar", {
           method:"POST",
           headers:{"Content-Type":"application/json"},
-          body: JSON.stringify({ semestre, equipo: it.equipo, extra: it.extra })
+          body: JSON.stringify({
+            semestre,
+            equipo,
+            extra_general: extraGeneral
+          })
         }, 25000);
 
         const j = await r.json().catch(()=> ({}));
 
         if(!r.ok || (j && j.ok === false)){
-          const msg = j.error || j.msg || `Error registrando ${it.equipo}`;
-          toast(`❌ Falló: ${it.equipo}\n${msg}`);
+          const msg = j.error || j.msg || `Error registrando ${equipo}`;
+          toast(`❌ Falló: ${equipo}\n${msg}`);
           continue;
         }
 
@@ -619,7 +594,7 @@
           j.id || j.ID || j.lab_id || j.LAB_ID ||
           j.item?.ID || j.item?.id || j.data?.ID || j.data?.id || j.result?.ID;
 
-        if(id) ids.push(`${it.equipo}: ${id}`);
+        if(id) ids.push(`${equipo}: ${id}`);
       }
 
       if(okCount === 0){
@@ -628,12 +603,12 @@
 
       toast(`✅ Solicitud registrada\nEquipos: ${okCount}\n${ids.slice(0,6).join("\n")}${ids.length>6 ? "\n..." : ""}`);
 
-      // limpia
       $("semestre").value = "";
       $("equipo").value = "";
       $("equipo").readOnly = false;
-      equiposPedido = [{ equipo:"", extra:"", locked:false }];
-      renderEquipCards();
+      $("extraGeneral").value = "";
+      equiposPedido = [""];
+      renderEquiposList();
 
     }catch(e){
       if(String(e).includes("AbortError")){
@@ -649,11 +624,12 @@
   $("btnClearEquipo").addEventListener("click", ()=>{
     $("equipo").value = "";
     $("equipo").readOnly = false;
+    $("extraGeneral").value = "";
 
     clearEquipoQueryAndStorage();
 
-    equiposPedido = [{ equipo:"", extra:"", locked:false }];
-    renderEquipCards();
+    equiposPedido = [""];
+    renderEquiposList();
 
     toast("Todo limpiado ✅");
     $("equipo").focus();
@@ -674,13 +650,9 @@
   });
 
   document.addEventListener("DOMContentLoaded", ()=>{
-    // Siempre arrancamos con 1 recuadro editable
-    equiposPedido = [{ equipo:"", extra:"", locked:false }];
-    renderEquipCards();
-
-    // Si viene desde SharePoint, llena el primer recuadro vacío
-    autofillEquipoIntoCard();
-
+    equiposPedido = [""];
+    renderEquiposList();
+    autofillEquipoEnUltimoEspacio();
     loadSession();
   });
 </script>
