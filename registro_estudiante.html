@@ -251,7 +251,6 @@
   </div>
 
   <div class="grid">
-    <!-- FORM -->
     <div class="card">
       <h3>Registrar préstamo</h3>
 
@@ -270,7 +269,7 @@
 
       <label>Equipo</label>
       <div class="row">
-        <input id="equipo" name="equipo" type="text" placeholder="Ej: Multímetro" autocomplete="off" />
+        <input id="equipo" name="equipo" type="text" placeholder="Ej: Multímetro" autocomplete="off" readonly />
         <button class="plusBtn" id="btnAddEquipo" type="button" title="Agregar otro equipo">+</button>
       </div>
 
@@ -282,7 +281,7 @@
         <div class="equiposTitle">Equipos agregados a esta solicitud</div>
         <div id="equiposList"></div>
         <div class="hint" style="margin-top:8px;">
-          Cada equipo se enviará como un registro individual, pero seguirá perteneciendo a la misma solicitud del estudiante.
+          Ningún equipo se envía hasta que presiones <b>Registrar</b>.
         </div>
       </div>
 
@@ -299,11 +298,10 @@
 
       <div class="hint">
         Tu <b>Nombre</b> e <b>ID Banner</b> se toman del login.<br/>
-        Solo llenas <b>Semestre</b>, agregas <b>Equipo(s)</b> con el <b>+</b> y opcionalmente completas <b>Extra</b>.
+        Los equipos se acumulan en pantalla y solo se mandan al final con <b>Registrar</b>.
       </div>
     </div>
 
-    <!-- INFO -->
     <div class="card2">
       <h3 style="margin-bottom:10px; letter-spacing:.18em; text-transform:uppercase; color:var(--muted); font-size:14px;">
         Tu sesión
@@ -325,22 +323,22 @@
   const SHAREPOINT_INVENTARIO_URL =
     "https://udlaec.sharepoint.com/sites/InventarioLaboratorioElectrnica/Lists/Inventario/AllItems.aspx?env=WebViewList";
 
-  // Solo guardamos nombres de equipos en orden
+  // Cada posición es un campo visible en la lista.
+  // Ejemplo: ["Multímetro", "Osciloscopio", ""]
   let equiposPedido = [""];
 
   function toast(msg){
     const t = $("toast");
     t.textContent = msg;
     t.style.display = "block";
-    setTimeout(()=> t.style.display="none", 3200);
+    setTimeout(()=> t.style.display = "none", 3200);
   }
 
-  async function fetchWithTimeout(url, options={}, ms=20000){
+  async function fetchWithTimeout(url, options = {}, ms = 20000){
     const ctrl = new AbortController();
     const t = setTimeout(()=> ctrl.abort(), ms);
     try{
-      const r = await fetch(url, { ...options, signal: ctrl.signal });
-      return r;
+      return await fetch(url, { ...options, signal: ctrl.signal });
     } finally {
       clearTimeout(t);
     }
@@ -355,134 +353,92 @@
       .replaceAll("'","&#039;");
   }
 
-  function getEquipoFromURLorStorage(){
+  function getEquipoFromURL(){
     const params = new URLSearchParams(window.location.search);
     const equipoURL = params.get("equipo");
+    if(!equipoURL) return "";
 
-    if(equipoURL){
-      let clean = equipoURL;
-      try{ clean = decodeURIComponent(equipoURL); }catch(_){}
-      clean = (clean || "").trim();
-      if(clean){
-        sessionStorage.setItem("spectra_equipo", clean);
-        return { value: clean, from: "url" };
-      }
-    }
-
-    const stored = (sessionStorage.getItem("spectra_equipo") || "").trim();
-    if(stored) return { value: stored, from: "storage" };
-
-    return { value: "", from: "" };
+    let clean = equipoURL;
+    try{ clean = decodeURIComponent(equipoURL); }catch(_){}
+    return (clean || "").trim();
   }
 
-  function clearEquipoQueryAndStorage(){
+  function clearEquipoQueryOnly(){
     const url = new URL(window.location.href);
     url.searchParams.delete("equipo");
     window.history.replaceState({}, "", url.toString());
-    sessionStorage.removeItem("spectra_equipo");
+  }
+
+  function ensureAtLeastOneEmptyRow(){
+    if(!equiposPedido.length){
+      equiposPedido = [""];
+      return;
+    }
+
+    const last = (equiposPedido[equiposPedido.length - 1] || "").trim();
+    if(last){
+      equiposPedido.push("");
+    }
   }
 
   function renderEquiposList(){
     const wrap = $("equiposList");
     wrap.innerHTML = "";
 
-    const equiposConValor = equiposPedido.filter(x => (x || "").trim() !== "");
-
     if(!equiposPedido.length){
       equiposPedido = [""];
     }
 
     equiposPedido.forEach((equipo, idx) => {
-      const isLast = idx === equiposPedido.length - 1;
-
       const div = document.createElement("div");
       div.className = "equipoItem";
       div.innerHTML = `
         <div class="equipoHead">
           <div class="equipoMiniLabel">${idx === 0 ? "Equipo" : "Equipo " + (idx + 1)}</div>
-          ${equiposPedido.length > 1 || (equipo || "").trim() !== "" ? `<button class="rmBtn" type="button" data-idx="${idx}">Quitar</button>` : ""}
+          ${((equipo || "").trim() || equiposPedido.length > 1) ? `<button class="rmBtn" type="button" data-idx="${idx}">Quitar</button>` : ""}
         </div>
         <div class="equipoRow">
           <input
             class="equipoInput"
             type="text"
             data-idx="${idx}"
-            placeholder="Ej: Multímetro"
+            placeholder="Selecciona desde Inventario"
             value="${escapeHtml(equipo)}"
-            ${!isLast && (equipo || "").trim() !== "" ? "readonly" : ""}
+            readonly
           />
         </div>
       `;
       wrap.appendChild(div);
     });
 
-    wrap.querySelectorAll(".equipoInput").forEach(inp => {
-      inp.addEventListener("input", ()=>{
-        const i = parseInt(inp.getAttribute("data-idx"), 10);
-        if(Number.isInteger(i) && i >= 0 && i < equiposPedido.length){
-          equiposPedido[i] = inp.value;
-        }
-      });
-    });
-
     wrap.querySelectorAll(".rmBtn").forEach(btn => {
       btn.addEventListener("click", ()=>{
         const i = parseInt(btn.getAttribute("data-idx"), 10);
-        if(Number.isInteger(i) && i >= 0 && i < equiposPedido.length){
-          equiposPedido.splice(i, 1);
+        if(!Number.isInteger(i)) return;
 
-          if(equiposPedido.length === 0){
-            equiposPedido = [""];
-          }
+        equiposPedido.splice(i, 1);
 
-          renderEquiposList();
+        if(!equiposPedido.length){
+          equiposPedido = [""];
         }
+
+        ensureAtLeastOneEmptyRow();
+        syncTopSelectorWithLastRow();
+        renderEquiposList();
       });
     });
+  }
 
-    if(equiposConValor.length === 0 && equiposPedido.length === 0){
+  function syncTopSelectorWithLastRow(){
+    if(!equiposPedido.length){
       equiposPedido = [""];
-      renderEquiposList();
     }
+    const lastValue = equiposPedido[equiposPedido.length - 1] || "";
+    $("equipo").value = lastValue;
   }
 
+  // Botón +: solo crea una nueva fila vacía debajo.
   function addNuevoEspacioEquipo(){
-    const ultimoIdx = equiposPedido.length - 1;
-    const ultimoValor = (equiposPedido[ultimoIdx] || "").trim();
-
-    if(!ultimoValor){
-      $("equipo").value = "";
-      $("equipo").readOnly = false;
-      renderEquiposList();
-
-      setTimeout(()=>{
-        const inputs = document.querySelectorAll(".equipoInput");
-        const last = inputs[inputs.length - 1];
-        if(last) last.focus();
-      }, 50);
-
-      return toast("Primero selecciona o escribe un equipo antes de presionar + ❗");
-    }
-
-    equiposPedido.push("");
-    $("equipo").value = "";
-    $("equipo").readOnly = false;
-
-    renderEquiposList();
-
-    setTimeout(()=>{
-      const inputs = document.querySelectorAll(".equipoInput");
-      const last = inputs[inputs.length - 1];
-      if(last) last.focus();
-    }, 50);
-
-    toast("Nuevo espacio de equipo creado ✅");
-  }
-
-  function autofillEquipoEnUltimoEspacio(){
-    const info = getEquipoFromURLorStorage();
-    if(!info.value) return;
-
     if(!equiposPedido.length){
       equiposPedido = [""];
     }
@@ -490,33 +446,68 @@
     const lastIdx = equiposPedido.length - 1;
     const lastValue = (equiposPedido[lastIdx] || "").trim();
 
-    // Si el último ya tiene algo, crear uno nuevo abajo
-    if(lastValue){
-      equiposPedido.push("");
+    if(!lastValue){
+      return toast("Primero selecciona un equipo desde Inventario ❗");
     }
 
-    const targetIdx = equiposPedido.length - 1;
-    equiposPedido[targetIdx] = info.value;
+    equiposPedido.push("");
+    syncTopSelectorWithLastRow();
+    renderEquiposList();
+    toast("Nuevo espacio de equipo creado ✅");
+  }
 
+  // Cuando vuelves de Inventario, el equipo nuevo entra SOLO en el último espacio vacío.
+  // Nunca borra los anteriores.
+  function autofillEquipoEnUltimoEspacio(){
+    const equipoSeleccionado = getEquipoFromURL();
+    if(!equipoSeleccionado) return;
+
+    if(!equiposPedido.length){
+      equiposPedido = [""];
+    }
+
+    // Buscar último espacio vacío
+    let targetIdx = equiposPedido.findIndex(x => !(x || "").trim());
+
+    // Si no hay vacío, crear uno nuevo al final
+    if(targetIdx === -1){
+      equiposPedido.push("");
+      targetIdx = equiposPedido.length - 1;
+    }
+
+    // Si por alguna razón el target ya tiene valor, crear otro
+    if((equiposPedido[targetIdx] || "").trim()){
+      equiposPedido.push("");
+      targetIdx = equiposPedido.length - 1;
+    }
+
+    equiposPedido[targetIdx] = equipoSeleccionado;
+
+    // Asegura siempre un espacio vacío al final para el próximo equipo
+    ensureAtLeastOneEmptyRow();
+
+    syncTopSelectorWithLastRow();
     renderEquiposList();
 
-    $("equipo").value = info.value;
-    $("equipo").readOnly = true;
+    toast(`Equipo seleccionado ✅\n${equipoSeleccionado}`);
 
-    toast(`Equipo seleccionado ✅\n${info.value}`);
-
-    clearEquipoQueryAndStorage();
+    // Muy importante: solo quitamos el query de la URL.
+    // NO borramos la lista en memoria.
+    clearEquipoQueryOnly();
   }
 
   async function loadSession(){
     try{
       const r = await fetchWithTimeout("/whoami", { cache:"no-store" }, 12000);
       const j = await r.json().catch(()=> ({}));
-      if(!r.ok || !j.ok) return toast("No pude leer sesión ❌");
+
+      if(!r.ok || !j.ok){
+        return toast("No pude leer sesión ❌");
+      }
 
       if(j.role !== "student"){
         toast("No estás logeado como estudiante ❌");
-        setTimeout(()=> location.href="/login", 800);
+        setTimeout(()=> location.href = "/login", 800);
         return;
       }
 
@@ -539,13 +530,6 @@
 
   $("btnAddEquipo").addEventListener("click", addNuevoEspacioEquipo);
 
-  $("equipo").addEventListener("keydown", (e)=>{
-    if(e.key === "Enter"){
-      e.preventDefault();
-      addNuevoEspacioEquipo();
-    }
-  });
-
   $("btnRegistrar").addEventListener("click", async () => {
     const semestre = ($("semestre").value || "").trim();
     const semNum = parseInt(semestre, 10);
@@ -555,6 +539,7 @@
       return toast("Selecciona un semestre válido ❗");
     }
 
+    // Solo enviar los que tienen texto
     const finalEquipos = equiposPedido
       .map(x => (x || "").trim())
       .filter(x => x.length > 0);
@@ -601,13 +586,12 @@
         return;
       }
 
-      toast(`✅ Solicitud registrada\nEquipos: ${okCount}\n${ids.slice(0,6).join("\n")}${ids.length>6 ? "\n..." : ""}`);
+      toast(`✅ Solicitud registrada\nEquipos: ${okCount}\n${ids.slice(0,6).join("\n")}${ids.length > 6 ? "\n..." : ""}`);
 
       $("semestre").value = "";
-      $("equipo").value = "";
-      $("equipo").readOnly = false;
       $("extraGeneral").value = "";
       equiposPedido = [""];
+      syncTopSelectorWithLastRow();
       renderEquiposList();
 
     }catch(e){
@@ -622,17 +606,12 @@
   });
 
   $("btnClearEquipo").addEventListener("click", ()=>{
-    $("equipo").value = "";
-    $("equipo").readOnly = false;
     $("extraGeneral").value = "";
-
-    clearEquipoQueryAndStorage();
-
     equiposPedido = [""];
+    clearEquipoQueryOnly();
+    syncTopSelectorWithLastRow();
     renderEquiposList();
-
     toast("Todo limpiado ✅");
-    $("equipo").focus();
   });
 
   $("btnLogout").addEventListener("click", async ()=>{
@@ -652,6 +631,7 @@
   document.addEventListener("DOMContentLoaded", ()=>{
     equiposPedido = [""];
     renderEquiposList();
+    syncTopSelectorWithLastRow();
     autofillEquipoEnUltimoEspacio();
     loadSession();
   });
