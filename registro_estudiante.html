@@ -81,6 +81,9 @@
       opacity:.85;
       cursor:not-allowed;
     }
+    input[readonly]{
+      cursor:default;
+    }
     select:focus, input:focus, textarea:focus{
       border-color:rgba(34,211,238,.45)
     }
@@ -184,12 +187,14 @@
       letter-spacing:.12em;
       text-transform:uppercase;
     }
+
     .equipoItem{
-      margin-bottom:12px;
+      margin-top:10px;
     }
-    .equipoItem:last-child{
-      margin-bottom:0;
+    .equipoItem:first-child{
+      margin-top:0;
     }
+
     .equipoHead{
       display:flex;
       align-items:center;
@@ -251,6 +256,7 @@
   </div>
 
   <div class="grid">
+    <!-- FORM -->
     <div class="card">
       <h3>Registrar préstamo</h3>
 
@@ -269,19 +275,22 @@
 
       <label>Equipo</label>
       <div class="row">
-        <input id="equipo" name="equipo" type="text" placeholder="Ej: Multímetro" autocomplete="off" readonly />
+        <input id="equipo" name="equipo" type="text" placeholder="Selecciona desde Inventario" autocomplete="off" readonly />
         <button class="plusBtn" id="btnAddEquipo" type="button" title="Agregar otro equipo">+</button>
       </div>
 
       <div class="hint" style="margin-top:8px;">
-        Selecciona un equipo desde Inventario. Luego presiona <b>+</b> para crear otro espacio debajo sin borrar el anterior.
+        Selecciona un equipo desde Inventario. Luego presiona <b>+</b> para crear otro espacio debajo.
       </div>
 
       <div class="equiposBox">
         <div class="equiposTitle">Equipos agregados a esta solicitud</div>
+
+        <!-- SOLO aquí se agregan los bloques 2, 3, 4... -->
         <div id="equiposList"></div>
+
         <div class="hint" style="margin-top:8px;">
-          Ningún equipo se envía hasta que presiones <b>Registrar</b>.
+          Nada se envía hasta que presiones <b>Registrar</b>.
         </div>
       </div>
 
@@ -298,10 +307,11 @@
 
       <div class="hint">
         Tu <b>Nombre</b> e <b>ID Banner</b> se toman del login.<br/>
-        Los equipos se acumulan en pantalla y solo se mandan al final con <b>Registrar</b>.
+        Los equipos solo se mandan cuando presionas <b>Registrar</b>.
       </div>
     </div>
 
+    <!-- INFO -->
     <div class="card2">
       <h3 style="margin-bottom:10px; letter-spacing:.18em; text-transform:uppercase; color:var(--muted); font-size:14px;">
         Tu sesión
@@ -323,22 +333,29 @@
   const SHAREPOINT_INVENTARIO_URL =
     "https://udlaec.sharepoint.com/sites/InventarioLaboratorioElectrnica/Lists/Inventario/AllItems.aspx?env=WebViewList";
 
-  // Cada posición es un campo visible en la lista.
-  // Ejemplo: ["Multímetro", "Osciloscopio", ""]
+  const STORAGE_KEY = "spectra_registro_estudiante_state_v3";
+  const PENDING_KEY = "spectra_pending_equipo_v3";
+
+  // Estado exacto:
+  // equiposPedido[0] = primer input (el de arriba)
+  // equiposPedido[1], [2], ... = inputs creados con +
   let equiposPedido = [""];
+  let extraGeneralState = "";
+  let semestreState = "";
 
   function toast(msg){
     const t = $("toast");
     t.textContent = msg;
     t.style.display = "block";
-    setTimeout(()=> t.style.display = "none", 3200);
+    setTimeout(()=> t.style.display="none", 3200);
   }
 
-  async function fetchWithTimeout(url, options = {}, ms = 20000){
+  async function fetchWithTimeout(url, options={}, ms=20000){
     const ctrl = new AbortController();
     const t = setTimeout(()=> ctrl.abort(), ms);
     try{
-      return await fetch(url, { ...options, signal: ctrl.signal });
+      const r = await fetch(url, { ...options, signal: ctrl.signal });
+      return r;
     } finally {
       clearTimeout(t);
     }
@@ -351,6 +368,44 @@
       .replaceAll(">","&gt;")
       .replaceAll('"',"&quot;")
       .replaceAll("'","&#039;");
+  }
+
+  function saveState(){
+    const payload = {
+      equiposPedido,
+      extraGeneral: $("extraGeneral") ? $("extraGeneral").value : extraGeneralState,
+      semestre: $("semestre") ? $("semestre").value : semestreState
+    };
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+  }
+
+  function loadState(){
+    try{
+      const raw = sessionStorage.getItem(STORAGE_KEY);
+      if(!raw){
+        equiposPedido = [""];
+        return;
+      }
+
+      const parsed = JSON.parse(raw);
+      if(Array.isArray(parsed.equiposPedido) && parsed.equiposPedido.length){
+        equiposPedido = parsed.equiposPedido.map(x => String(x || ""));
+      }else{
+        equiposPedido = [""];
+      }
+
+      extraGeneralState = String(parsed.extraGeneral || "");
+      semestreState = String(parsed.semestre || "");
+    }catch(_){
+      equiposPedido = [""];
+      extraGeneralState = "";
+      semestreState = "";
+    }
+  }
+
+  function clearState(){
+    sessionStorage.removeItem(STORAGE_KEY);
+    sessionStorage.removeItem(PENDING_KEY);
   }
 
   function getEquipoFromURL(){
@@ -369,39 +424,39 @@
     window.history.replaceState({}, "", url.toString());
   }
 
-  function ensureAtLeastOneEmptyRow(){
-    if(!equiposPedido.length){
-      equiposPedido = [""];
-      return;
-    }
-
-    const last = (equiposPedido[equiposPedido.length - 1] || "").trim();
-    if(last){
-      equiposPedido.push("");
-    }
+  function syncMainFields(){
+    if(!equiposPedido.length) equiposPedido = [""];
+    $("equipo").value = equiposPedido[0] || "";
+    $("extraGeneral").value = extraGeneralState || "";
+    $("semestre").value = semestreState || "";
   }
 
   function renderEquiposList(){
     const wrap = $("equiposList");
     wrap.innerHTML = "";
 
-    if(!equiposPedido.length){
-      equiposPedido = [""];
+    // Solo mostrar bloques adicionales (2, 3, 4...)
+    const adicionales = equiposPedido.slice(1);
+
+    if(!adicionales.length){
+      return;
     }
 
-    equiposPedido.forEach((equipo, idx) => {
+    adicionales.forEach((equipo, idx) => {
+      const realIndex = idx + 1;
+
       const div = document.createElement("div");
       div.className = "equipoItem";
       div.innerHTML = `
         <div class="equipoHead">
-          <div class="equipoMiniLabel">${idx === 0 ? "Equipo" : "Equipo " + (idx + 1)}</div>
-          ${((equipo || "").trim() || equiposPedido.length > 1) ? `<button class="rmBtn" type="button" data-idx="${idx}">Quitar</button>` : ""}
+          <div class="equipoMiniLabel">Equipo ${realIndex + 1}</div>
+          <button class="rmBtn" type="button" data-idx="${realIndex}">Quitar</button>
         </div>
         <div class="equipoRow">
           <input
             class="equipoInput"
             type="text"
-            data-idx="${idx}"
+            data-idx="${realIndex}"
             placeholder="Selecciona desde Inventario"
             value="${escapeHtml(equipo)}"
             readonly
@@ -422,43 +477,57 @@
           equiposPedido = [""];
         }
 
-        ensureAtLeastOneEmptyRow();
-        syncTopSelectorWithLastRow();
+        saveState();
+        syncMainFields();
         renderEquiposList();
       });
     });
   }
 
-  function syncTopSelectorWithLastRow(){
-    if(!equiposPedido.length){
-      equiposPedido = [""];
+  function fillFirstEmptySlot(equipoSeleccionado){
+    for(let i = 0; i < equiposPedido.length; i++){
+      if(!(equiposPedido[i] || "").trim()){
+        equiposPedido[i] = equipoSeleccionado;
+        return true;
+      }
     }
-    const lastValue = equiposPedido[equiposPedido.length - 1] || "";
-    $("equipo").value = lastValue;
+    return false;
   }
 
-  // Botón +: solo crea una nueva fila vacía debajo.
   function addNuevoEspacioEquipo(){
     if(!equiposPedido.length){
       equiposPedido = [""];
     }
 
-    const lastIdx = equiposPedido.length - 1;
-    const lastValue = (equiposPedido[lastIdx] || "").trim();
+    const ultimoValor = (equiposPedido[equiposPedido.length - 1] || "").trim();
 
-    if(!lastValue){
-      return toast("Primero selecciona un equipo desde Inventario ❗");
+    if(!ultimoValor){
+      return toast("Primero selecciona un equipo antes de presionar + ❗");
     }
 
+    // Solo crea un nuevo bloque vacío debajo
     equiposPedido.push("");
-    syncTopSelectorWithLastRow();
+    saveState();
+    syncMainFields();
     renderEquiposList();
+
+    // Si había un equipo pendiente por volver de inventario sin espacio,
+    // lo metemos automáticamente en el nuevo bloque
+    const pending = (sessionStorage.getItem(PENDING_KEY) || "").trim();
+    if(pending){
+      equiposPedido[equiposPedido.length - 1] = pending;
+      sessionStorage.removeItem(PENDING_KEY);
+      saveState();
+      syncMainFields();
+      renderEquiposList();
+      toast(`Equipo agregado ✅\n${pending}`);
+      return;
+    }
+
     toast("Nuevo espacio de equipo creado ✅");
   }
 
-  // Cuando vuelves de Inventario, el equipo nuevo entra SOLO en el último espacio vacío.
-  // Nunca borra los anteriores.
-  function autofillEquipoEnUltimoEspacio(){
+  function applyIncomingEquipoFromURL(){
     const equipoSeleccionado = getEquipoFromURL();
     if(!equipoSeleccionado) return;
 
@@ -466,48 +535,34 @@
       equiposPedido = [""];
     }
 
-    // Buscar último espacio vacío
-    let targetIdx = equiposPedido.findIndex(x => !(x || "").trim());
+    // Caso ideal: llenar el primer espacio vacío
+    const filled = fillFirstEmptySlot(equipoSeleccionado);
 
-    // Si no hay vacío, crear uno nuevo al final
-    if(targetIdx === -1){
-      equiposPedido.push("");
-      targetIdx = equiposPedido.length - 1;
+    if(filled){
+      saveState();
+      syncMainFields();
+      renderEquiposList();
+      clearEquipoQueryOnly();
+      toast(`Equipo seleccionado ✅\n${equipoSeleccionado}`);
+      return;
     }
 
-    // Si por alguna razón el target ya tiene valor, crear otro
-    if((equiposPedido[targetIdx] || "").trim()){
-      equiposPedido.push("");
-      targetIdx = equiposPedido.length - 1;
-    }
-
-    equiposPedido[targetIdx] = equipoSeleccionado;
-
-    // Asegura siempre un espacio vacío al final para el próximo equipo
-    ensureAtLeastOneEmptyRow();
-
-    syncTopSelectorWithLastRow();
-    renderEquiposList();
-
-    toast(`Equipo seleccionado ✅\n${equipoSeleccionado}`);
-
-    // Muy importante: solo quitamos el query de la URL.
-    // NO borramos la lista en memoria.
+    // Si no hay espacio vacío, NO crear otro automáticamente.
+    // Lo dejamos pendiente hasta que el usuario presione +
+    sessionStorage.setItem(PENDING_KEY, equipoSeleccionado);
     clearEquipoQueryOnly();
+    toast(`Ya no hay espacio vacío.\nPresiona + y se agregará:\n${equipoSeleccionado}`);
   }
 
   async function loadSession(){
     try{
       const r = await fetchWithTimeout("/whoami", { cache:"no-store" }, 12000);
       const j = await r.json().catch(()=> ({}));
-
-      if(!r.ok || !j.ok){
-        return toast("No pude leer sesión ❌");
-      }
+      if(!r.ok || !j.ok) return toast("No pude leer sesión ❌");
 
       if(j.role !== "student"){
         toast("No estás logeado como estudiante ❌");
-        setTimeout(()=> location.href = "/login", 800);
+        setTimeout(()=> location.href="/login", 800);
         return;
       }
 
@@ -525,10 +580,22 @@
   }
 
   $("btnInventario").addEventListener("click", ()=>{
+    // Guardar estado antes de salir a Inventario
+    saveState();
     window.location.href = SHAREPOINT_INVENTARIO_URL;
   });
 
   $("btnAddEquipo").addEventListener("click", addNuevoEspacioEquipo);
+
+  $("semestre").addEventListener("change", ()=>{
+    semestreState = $("semestre").value || "";
+    saveState();
+  });
+
+  $("extraGeneral").addEventListener("input", ()=>{
+    extraGeneralState = $("extraGeneral").value || "";
+    saveState();
+  });
 
   $("btnRegistrar").addEventListener("click", async () => {
     const semestre = ($("semestre").value || "").trim();
@@ -539,7 +606,6 @@
       return toast("Selecciona un semestre válido ❗");
     }
 
-    // Solo enviar los que tienen texto
     const finalEquipos = equiposPedido
       .map(x => (x || "").trim())
       .filter(x => x.length > 0);
@@ -586,12 +652,18 @@
         return;
       }
 
-      toast(`✅ Solicitud registrada\nEquipos: ${okCount}\n${ids.slice(0,6).join("\n")}${ids.length > 6 ? "\n..." : ""}`);
+      toast(`✅ Solicitud registrada\nEquipos: ${okCount}\n${ids.slice(0,6).join("\n")}${ids.length>6 ? "\n..." : ""}`);
 
-      $("semestre").value = "";
-      $("extraGeneral").value = "";
+      // limpiar todo al finalizar
       equiposPedido = [""];
-      syncTopSelectorWithLastRow();
+      extraGeneralState = "";
+      semestreState = "";
+
+      $("equipo").value = "";
+      $("extraGeneral").value = "";
+      $("semestre").value = "";
+
+      clearState();
       renderEquiposList();
 
     }catch(e){
@@ -606,11 +678,18 @@
   });
 
   $("btnClearEquipo").addEventListener("click", ()=>{
-    $("extraGeneral").value = "";
     equiposPedido = [""];
+    extraGeneralState = "";
+    semestreState = "";
+
+    $("equipo").value = "";
+    $("extraGeneral").value = "";
+    $("semestre").value = "";
+
+    clearState();
     clearEquipoQueryOnly();
-    syncTopSelectorWithLastRow();
     renderEquiposList();
+
     toast("Todo limpiado ✅");
   });
 
@@ -619,6 +698,7 @@
       const r = await fetchWithTimeout("/auth/logout", { method:"POST" }, 12000);
       const j = await r.json().catch(()=> ({}));
       if(j.ok){
+        clearState();
         location.href = "/login";
       }else{
         toast("No pude cerrar sesión ❌");
@@ -629,10 +709,10 @@
   });
 
   document.addEventListener("DOMContentLoaded", ()=>{
-    equiposPedido = [""];
+    loadState();
+    syncMainFields();
     renderEquiposList();
-    syncTopSelectorWithLastRow();
-    autofillEquipoEnUltimoEspacio();
+    applyIncomingEquipoFromURL();
     loadSession();
   });
 </script>
