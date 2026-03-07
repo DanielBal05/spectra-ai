@@ -89,11 +89,11 @@ FASTAPI_TASKS = f"{FASTAPI_BASE}/tasks"         # recordatorios reales (FastAPI)
 # =========================
 # ✅ ✅ CONFIG n8n (LAB)
 # =========================
-N8N_BASE = os.environ.get("N8N_BASE", "http://127.0.0.1:5678")
+N8N_BASE = "https://n8n-lab-automation.onrender.com"
+
 N8N_PRESTAR  = f"{N8N_BASE}/webhook/lab/prestamo"
 N8N_DEVOLVER = f"{N8N_BASE}/webhook/lab/devolver"
 N8N_LISTAR   = f"{N8N_BASE}/webhook/lab/listar"
-
 
 # =========================
 # ✅ (LEGACY) Recordatorios Flask (DB que lee tu pestaña /reminders)
