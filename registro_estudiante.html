@@ -597,85 +597,85 @@
     saveState();
   });
 
-  $("btnRegistrar").addEventListener("click", async () => {
-    const semestre = ($("semestre").value || "").trim();
-    const semNum = parseInt(semestre, 10);
-    const extraGeneral = ($("extraGeneral").value || "").trim();
+$("btnRegistrar").addEventListener("click", async () => {
+  const semestre = ($("semestre").value || "").trim();
+  const semNum = parseInt(semestre, 10);
+  const extraGeneral = ($("extraGeneral").value || "").trim();
 
-    if(!semestre || Number.isNaN(semNum) || semNum < 1 || semNum > 12){
-      return toast("Selecciona un semestre válido ❗");
-    }
+  if(!semestre || Number.isNaN(semNum) || semNum < 1 || semNum > 12){
+    return toast("Selecciona un semestre válido ❗");
+  }
 
-    const finalEquipos = equiposPedido
-      .map(x => (x || "").trim())
-      .filter(x => x.length > 0);
+  const finalEquipos = equiposPedido
+    .map(x => (x || "").trim())
+    .filter(x => x.length > 0);
 
-    if(finalEquipos.length === 0){
-      return toast("Agrega al menos 1 equipo ❗");
-    }
+  // ✅ permitir registrar si hay equipos o si hay extras
+  if(finalEquipos.length === 0 && !extraGeneral){
+    return toast("Agrega al menos 1 equipo o escribe algo en Extras ❗");
+  }
 
-    $("btnRegistrar").disabled = true;
+  // ✅ si solo escribió Extras, mandamos 1 registro sin equipo
+  if(finalEquipos.length === 0 && extraGeneral){
+    finalEquipos.push("");
+  }
 
-    try{
-      let okCount = 0;
-      const ids = [];
+  $("btnRegistrar").disabled = true;
 
-      for(const equipo of finalEquipos){
-        const r = await fetchWithTimeout("/api/lab/prestar", {
-          method:"POST",
-          headers:{"Content-Type":"application/json"},
-          body: JSON.stringify({
-            semestre,
-            equipo,
-            extra_general: extraGeneral
-          })
-        }, 25000);
+  try{
+    let okCount = 0;
+    const ids = [];
 
-        const j = await r.json().catch(()=> ({}));
+    for(const equipo of finalEquipos){
+      const r = await fetchWithTimeout("/api/lab/prestar", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({
+          semestre,
+          equipo,
+          extra_general: extraGeneral
+        })
+      }, 25000);
 
-        if(!r.ok || (j && j.ok === false)){
-          const msg = j.error || j.msg || `Error registrando ${equipo}`;
-          toast(`❌ Falló: ${equipo}\n${msg}`);
-          continue;
-        }
+      const j = await r.json().catch(()=> ({}));
 
-        okCount++;
-
-        const id =
-          j.id || j.ID || j.lab_id || j.LAB_ID ||
-          j.item?.ID || j.item?.id || j.data?.ID || j.data?.id || j.result?.ID;
-
-        if(id) ids.push(`${equipo}: ${id}`);
+      if(!r.ok || (j && j.ok === false)){
+        const msg = j.error || j.msg || `Error registrando ${equipo || "sin equipo"}`;
+        toast(`❌ Falló: ${equipo || "sin equipo"}\n${msg}`);
+        continue;
       }
 
-      if(okCount === 0){
-        return;
-      }
+      okCount++;
 
-      toast(`✅ Solicitud registrada\nEquipos: ${okCount}\n${ids.slice(0,6).join("\n")}${ids.length>6 ? "\n..." : ""}`);
+      const id =
+        j.id || j.ID || j.lab_id || j.LAB_ID ||
+        j.item?.ID || j.item?.id || j.data?.ID || j.data?.id || j.result?.ID;
 
-      // limpiar todo al finalizar
-      equiposPedido = [""];
-      extraGeneralState = "";
-      semestreState = "";
-
-      $("equipo").value = "";
-      $("extraGeneral").value = "";
-      $("semestre").value = "";
-
-      clearState();
-      renderEquiposList();
-
-    }catch(e){
-      if(String(e).includes("AbortError")){
-        toast("Timeout registrando (n8n no respondió) ⏳");
-      }else{
-        toast("Error de red registrando ❌");
-      }
-    }finally{
-      $("btnRegistrar").disabled = false;
+      if(id) ids.push(`${equipo || "Sin equipo"}: ${id}`);
     }
-  });
+
+    if(okCount === 0){
+      return;
+    }
+
+    toast(`✅ Solicitud registrada\nRegistros: ${okCount}\n${ids.slice(0,6).join("\n")}${ids.length>6 ? "\n..." : ""}`);
+
+    $("semestre").value = "";
+    $("equipo").value = "";
+    $("extraGeneral").value = "";
+    equiposPedido = [""];
+    renderEquiposList();
+
+  }catch(e){
+    if(String(e).includes("AbortError")){
+      toast("Timeout registrando (n8n no respondió) ⏳");
+    }else{
+      toast("Error de red registrando ❌");
+    }
+  }finally{
+    $("btnRegistrar").disabled = false;
+  }
+});
 
   $("btnClearEquipo").addEventListener("click", ()=>{
     equiposPedido = [""];
