@@ -813,8 +813,7 @@ def speaker_redirect():
 @app.route("/spectra")
 @require_role("admin")
 def spectra_redirect():
-    return redirect(f"{FASTAPI_BASE}/app", code=302)
-
+    return redirect(f"{FASTAPI_BASE}/app-spectra", code=302)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
