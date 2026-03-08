@@ -402,11 +402,12 @@ def api_lab_prestar():
             banner_id = (data.get("banner_id") or data.get("bannerId") or data.get("BannerID") or "").strip()
 
         payload = {
-            "nombre": nombre,
-            "banner_id": banner_id,  # ✅ ya lo mandamos a n8n
-            "semestre": data.get("semestre"),
-            "equipo": (data.get("equipo") or "").strip(),
-        }
+    "nombre": nombre,
+    "banner_id": banner_id,
+    "semestre": data.get("semestre"),
+    "equipo": (data.get("equipo") or "").strip(),
+    "Extras": data.get("extra_general")  # ← ESTA ES LA LÍNEA NUEVA
+}
 
         if not payload["nombre"] or payload["semestre"] in (None, "", []) or not payload["equipo"]:
             return jsonify({"ok": False, "error": "Faltan campos (nombre/semestre/equipo)"}), 400
