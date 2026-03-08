@@ -255,15 +255,13 @@ def notifications_test():
 # =========================
 @app.route("/login")
 def login_page():
-    # ✅ respeta next (si viene)
-    next_url = _safe_next_url(request.args.get("next"), default="/")
+    next_url = _safe_next_url(request.args.get("next"), default="/spectra")
 
-    # si ya estás logeado, re-dirige según rol
     role = session.get("role")
     if role == "admin":
-        return redirect(next_url if next_url != "/registro-estudiante" else "/")
+        return redirect("/spectra")
+
     if role == "student":
-        # permite mandar a inventario-estudiante o registro-estudiante
         return redirect(
             next_url
             if next_url.startswith("/registro-estudiante") or next_url.startswith("/inventario-estudiante")
@@ -292,7 +290,7 @@ def auth_admin():
     session["role"] = "admin"
     session["student_name"] = None
     session["banner_id"] = None
-    return jsonify({"ok": True, "redirect": "/"}), 200
+    return jsonify({"ok": True, "redirect": "/spectra"}), 200
 
 @app.route("/auth/student", methods=["POST"])
 def auth_student():
