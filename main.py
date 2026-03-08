@@ -604,10 +604,10 @@ def app_spectra_page():
       position:fixed;
       inset:0;
       background:
-        linear-gradient(to right, rgba(68,111,255,.05) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(68,111,255,.04) 1px, transparent 1px);
-      background-size:48px 48px;
-      mask-image: radial-gradient(circle at center, rgba(0,0,0,.95), transparent 90%);
+        linear-gradient(to right, rgba(68,111,255,.02) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(68,111,255,.015) 1px, transparent 1px);
+      background-size:56px 56px;
+      mask-image: radial-gradient(circle at center, rgba(0,0,0,.96), transparent 92%);
       pointer-events:none;
     }
 
@@ -974,7 +974,6 @@ def app_spectra_page():
     }
 
     .voiceTitle{ font-size:16px; line-height:1.4; }
-    .voiceSub{ color:var(--muted); font-size:13px; }
 
     .spacePill{
       display:inline-flex;
@@ -1104,6 +1103,12 @@ def app_spectra_page():
       font-weight:700;
     }
 
+    .quickBtn.on{
+      background:rgba(54,224,125,.12);
+      border-color:rgba(54,224,125,.28);
+      color:#d7ffe8;
+    }
+
     .bottomBar{
       display:flex;
       justify-content:space-between;
@@ -1186,7 +1191,7 @@ def app_spectra_page():
         </div>
 
         <div class="toolbarRight">
-          <a class="iconBtn" href="/speaker" target="_blank">🔊 SPEAKER PC</a>
+          <a class="iconBtn" href="/speaker-redirect" target="_blank">🔊 SPEAKER PC</a>
         </div>
       </div>
 
@@ -1247,8 +1252,13 @@ def app_spectra_page():
                 </div>
 
                 <div class="quickBtns">
-                  <button class="quickBtn" id="btnLoad">Cargar historial</button>
+                  <button class="quickBtn" id="btnNotif">Habilitar notificaciones</button>
+                  <button class="quickBtn" id="btnNotifTest">Probar notificación</button>
                   <button class="quickBtn" id="btnOpenSpeaker">Abrir Speaker PC</button>
+                </div>
+
+                <div class="quickBtns">
+                  <button class="quickBtn" id="btnLoad">Cargar historial</button>
                 </div>
 
                 <div class="bottomBar">
@@ -1297,9 +1307,11 @@ def app_spectra_page():
   const liveBox = document.getElementById("liveBox");
   const status = document.getElementById("status");
   const micStatus = document.getElementById("micStatus");
+  const btnNotif = document.getElementById("btnNotif");
 
   let unreadReminders = 0;
   let currentChatId = localStorage.getItem("spectra_chat_id") || "default";
+  let notificationsEnabled = false;
 
   function escapeHtml(s){
     return (s || "")
@@ -1380,7 +1392,7 @@ def app_spectra_page():
         if(!id) return;
         if(!confirm("¿Eliminar este recordatorio?")) return;
         try{
-          const r = await fetch(`/tasks/${encodeURIComponent(id)}`, { method:"DELETE" });
+          const r = await fetch(`/tasks-proxy/${encodeURIComponent(id)}`, { method:"DELETE" });
           if(!r.ok) throw new Error("No se pudo eliminar");
           await loadTasks();
         }catch(e){
@@ -1395,7 +1407,7 @@ def app_spectra_page():
   async function loadTasks(){
     try{
       remList.innerHTML = "";
-      const r = await fetch("/tasks");
+      const r = await fetch("/tasks-proxy");
       const j = await r.json();
       const tasks = j.tasks || [];
       if(!tasks.length){
@@ -1412,7 +1424,7 @@ def app_spectra_page():
 
   async function loadChatsList(){
     try{
-      const r = await fetch("/chats", {
+      const r = await fetch("/chats-proxy", {
         method:"GET",
         headers:{ "Cache-Control":"no-cache" }
       });
@@ -1458,7 +1470,7 @@ def app_spectra_page():
           }
           if(!confirm("¿Eliminar este chat?")) return;
           try{
-            const resp = await fetch(`/chats/${encodeURIComponent(id)}`, { method:"DELETE" });
+            const resp = await fetch(`/chats-proxy/${encodeURIComponent(id)}`, { method:"DELETE" });
             if(!resp.ok) throw new Error("No se pudo borrar");
             if(currentChatId === id){
               setCurrentChat("default", "Default");
@@ -1484,7 +1496,7 @@ def app_spectra_page():
 
   async function loadHistory(){
     try{
-      const r = await fetch(`/chats/${encodeURIComponent(currentChatId)}?limit=120`, {
+      const r = await fetch(`/chats-proxy/${encodeURIComponent(currentChatId)}?limit=120`, {
         headers:{ "Cache-Control":"no-cache" }
       });
       const j = await r.json();
@@ -1509,12 +1521,31 @@ def app_spectra_page():
     }
   }
 
+  async function refreshNotificationState(){
+    try{
+      const r = await fetch("/notifications/status");
+      const j = await r.json();
+      notificationsEnabled = !!(j.state && j.state.enabled);
+
+      if(notificationsEnabled){
+        btnNotif.textContent = "Notificaciones activadas";
+        btnNotif.classList.add("on");
+      }else{
+        btnNotif.textContent = "Habilitar notificaciones";
+        btnNotif.classList.remove("on");
+      }
+    }catch(e){
+      btnNotif.textContent = "Habilitar notificaciones";
+      btnNotif.classList.remove("on");
+    }
+  }
+
   document.getElementById("btnRefreshChats").onclick = async () => { await loadChatsList(); };
   document.getElementById("btnLoad").onclick = async () => { await loadHistory(); };
 
   document.getElementById("btnNewChat").onclick = async () => {
     try{
-      const r = await fetch("/chats", {
+      const r = await fetch("/chats-proxy", {
         method:"POST",
         headers:{ "Content-Type":"application/json" },
         body: JSON.stringify({ title:"Nuevo chat" })
@@ -1545,7 +1576,7 @@ def app_spectra_page():
     document.getElementById("q").value = "";
     micStatus.textContent = "Consultando a Spectra...";
     try{
-      const r = await fetch("/ask", {
+      const r = await fetch("/ask-proxy", {
         method:"POST",
         headers:{ "Content-Type":"application/json" },
         body: JSON.stringify({ question:q, chat_id:currentChatId })
@@ -1562,11 +1593,13 @@ def app_spectra_page():
     }
   };
 
-  document.getElementById("btnOpenSpeaker").onclick = () => window.open("/speaker", "_blank");
+  document.getElementById("btnOpenSpeaker").onclick = () => {
+    window.open("/speaker-redirect", "_blank");
+  };
 
   document.getElementById("btnUltima").onclick = async () => {
     try{
-      const r = await fetch("/firebase/ultima");
+      const r = await fetch("/firebase/ultima-proxy");
       const j = await r.json();
       liveBox.textContent = JSON.stringify(j.last || {}, null, 2);
     }catch(e){
@@ -1576,11 +1609,33 @@ def app_spectra_page():
 
   document.getElementById("btnCrudo").onclick = async () => {
     try{
-      const r = await fetch("/firebase/sensores");
+      const r = await fetch("/firebase/sensores-proxy");
       const j = await r.json();
       liveBox.textContent = JSON.stringify(j.data || {}, null, 2).slice(0, 2500);
     }catch(e){
       liveBox.textContent = "No pude cargar sensores ❌";
+    }
+  };
+
+  document.getElementById("btnNotif").onclick = async () => {
+    try{
+      const route = notificationsEnabled ? "/notifications/disable" : "/notifications/enable";
+      const r = await fetch(route, { method:"POST" });
+      if(!r.ok) throw new Error("No se pudo cambiar estado");
+      await refreshNotificationState();
+    }catch(e){
+      alert("No pude cambiar el estado de notificaciones ❌");
+    }
+  };
+
+  document.getElementById("btnNotifTest").onclick = async () => {
+    try{
+      const r = await fetch("/notifications/test", { method:"POST" });
+      const j = await r.json();
+      liveBox.textContent = j.message || "Notificación enviada";
+      alert(j.message || "Notificación de prueba enviada ✅");
+    }catch(e){
+      alert("No pude enviar la notificación de prueba ❌");
     }
   };
 
@@ -1617,6 +1672,15 @@ def app_spectra_page():
       if(data.type === "reminder"){
         const msgChat = data.chat_id || "default";
         if(msgChat !== currentChatId) return;
+
+        if(notificationsEnabled && "Notification" in window){
+          if(Notification.permission === "granted"){
+            new Notification("Spectra AI", {
+              body: data.text || "Tienes un recordatorio"
+            });
+          }
+        }
+
         unreadReminders += 1;
         remBadge.style.display = "inline-block";
         remBadge.textContent = String(unreadReminders);
@@ -1631,6 +1695,10 @@ def app_spectra_page():
   }, 25000);
 
   (async () => {
+    if("Notification" in window && Notification.permission === "default"){
+      try{ await Notification.requestPermission(); }catch(e){}
+    }
+    await refreshNotificationState();
     await loadChatsList();
     await loadHistory();
     await loadTasks();
