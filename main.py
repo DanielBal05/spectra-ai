@@ -1,5 +1,5 @@
 from fastapi import FastAPI, HTTPException, UploadFile, File, WebSocket, WebSocketDisconnect
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from pydantic import BaseModel
 from fastapi.middleware.wsgi import WSGIMiddleware
 from app import app as flask_app
@@ -1281,6 +1281,10 @@ def health_ollama():
 # ===============================
 @app.get("/")
 def root():
+    return RedirectResponse(url="/login", status_code=302)
+
+@app.get("/health")
+def health():
     ollama_ok = False
     try:
         requests.get(OLLAMA_TAGS_URL, timeout=2).raise_for_status()
@@ -1295,7 +1299,6 @@ def root():
         "model": MODEL,
         "message": "Servidor listo: STT + Speaker PC + Firebase + Analítica + WS App + MultiChat"
     }
-
 # ===============================
 # 🔥 Endpoints Firebase
 # ===============================
