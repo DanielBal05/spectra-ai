@@ -19,6 +19,18 @@ if not os.path.isdir(TEMPLATES_DIR):
 
 app = Flask(__name__, template_folder=TEMPLATES_DIR)
 
+@app.route("/ping")
+def ping():
+    return "flask ok", 200
+
+@app.route("/login-test")
+def login_test():
+    return "login route ok", 200
+
+@app.route("/template-test")
+def template_test():
+    return render_template("login.html"), 200
+
 # ✅ necesario para sesiones (login)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev_secret_change_me")
 
