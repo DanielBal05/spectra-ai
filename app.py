@@ -272,7 +272,6 @@ def debug_login():
 def auth_admin():
     data = request.get_json(silent=True) or {}
     password = (data.get("password") or "").strip()
-    next_url = _safe_next_url(data.get("next"), default="/")
 
     if not password or password != ADMIN_PASSWORD:
         return jsonify({"ok": False, "error": "Contraseña incorrecta ❌"}), 401
@@ -280,7 +279,7 @@ def auth_admin():
     session["role"] = "admin"
     session["student_name"] = None
     session["banner_id"] = None
-    return jsonify({"ok": True, "redirect": next_url or "/"}), 200
+    return jsonify({"ok": True, "redirect": "/"}), 200
 
 @app.route("/auth/student", methods=["POST"])
 def auth_student():
