@@ -2313,6 +2313,50 @@ async def talk(audio: UploadFile = File(...), chat_id: str = "default"):
                     os.remove(path)
             except:
                 pass
+# ===============================
+# PROXY ROUTES PARA FRONTEND
+# ===============================
+
+@app.get("/chats-proxy")
+def chats_proxy():
+    return api_list_chats()
+
+@app.post("/chats-proxy")
+def chats_create_proxy(req: ChatCreateReq):
+    return api_create_chat(req)
+
+@app.get("/chats-proxy/{chat_id}")
+def chats_get_proxy(chat_id: str, limit: int = 120):
+    return api_get_chat(chat_id, limit)
+
+@app.delete("/chats-proxy/{chat_id}")
+def chats_delete_proxy(chat_id: str):
+    return api_delete_chat(chat_id)
+
+
+@app.post("/ask-proxy")
+def ask_proxy(req: AskReq):
+    return ask(req)
+
+
+@app.get("/firebase/sensores-proxy")
+def sensores_proxy():
+    return get_sensores()
+
+
+@app.get("/firebase/ultima-proxy")
+def ultima_proxy():
+    return firebase_ultima()
+
+
+@app.get("/tasks-proxy")
+def tasks_proxy():
+    return list_tasks()
+
+
+@app.delete("/tasks-proxy/{task_id}")
+def delete_task_proxy(task_id: str):
+    return delete_task(task_id)
 
 # ===============================
 # Montar Flask (login antiguo)
