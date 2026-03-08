@@ -401,16 +401,23 @@ def api_lab_prestar():
             nombre = (data.get("nombre") or "").strip()
             banner_id = (data.get("banner_id") or data.get("bannerId") or data.get("BannerID") or "").strip()
 
-        payload = {
-    "nombre": nombre,
-    "banner_id": banner_id,
-    "semestre": data.get("semestre"),
-    "equipo": (data.get("equipo") or "").strip(),
-    "Extras": data.get("extra_general")  # ← ESTA ES LA LÍNEA NUEVA
-}
+        semestre = (data.get("semestre") or "").strip()
+        equipo = (data.get("equipo") or "").strip()
+        extras = (data.get("extra_general") or "").strip()
 
-        if not payload["nombre"] or payload["semestre"] in (None, "", []) or not payload["equipo"]:
-            return jsonify({"ok": False, "error": "Faltan campos (nombre/semestre/equipo)"}), 400
+        payload = {
+            "nombre": nombre,
+            "banner_id": banner_id,
+            "semestre": semestre,
+            "equipo": equipo,
+            "Extras": extras
+        }
+
+        if not nombre or not semestre:
+            return jsonify({"ok": False, "error": "Faltan campos (nombre/semestre)"}), 400
+
+        if not equipo and not extras:
+            return jsonify({"ok": False, "error": "Debes enviar equipo o extras"}), 400
 
         r = requests.post(N8N_PRESTAR, json=payload, timeout=30)
         try:
@@ -422,26 +429,6 @@ def api_lab_prestar():
         return jsonify({"ok": False, "error": "Timeout llamando a n8n /prestamo"}), 504
     except Exception as e:
         return jsonify({"ok": False, "error": f"api_lab_prestar error: {str(e)}"}), 500
-
-@app.route("/api/lab/devolver", methods=["POST"])
-@require_role("admin")  # 👈 solo admin devuelve
-def api_lab_devolver():
-    try:
-        data = request.get_json(silent=True) or {}
-        lab_id = (data.get("id") or "").strip()
-        if not lab_id:
-            return jsonify({"ok": False, "error": "Falta id"}), 400
-
-        r = requests.post(N8N_DEVOLVER, json={"id": lab_id}, timeout=30)
-        try:
-            return jsonify(r.json()), r.status_code
-        except Exception:
-            return jsonify({"ok": False, "error": "n8n devolvió no-JSON", "raw": (r.text or "")[:1500]}), 502
-
-    except requests.exceptions.Timeout:
-        return jsonify({"ok": False, "error": "Timeout llamando a n8n /devolver"}), 504
-    except Exception as e:
-        return jsonify({"ok": False, "error": f"api_lab_devolver error: {str(e)}"}), 500
 
 
 # =========================
