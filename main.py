@@ -555,518 +555,6 @@ setInterval(() => { if (ws.readyState === 1) ws.send("ping"); }, 25000);
 </html>
 """
 
-# ===============================
-# ✅ NUEVO: Página APP futurista (Core + Recordatorios + MultiChats EN REGISTRO)
-# ===============================
-@app.get("/app", response_class=HTMLResponse)
-def app_page():
-    return r"""
-<!doctype html>
-<html lang="es">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Spectra AI - App</title>
-  <style>
-    :root{
-      --bg:#070b14;
-      --card:rgba(255,255,255,.04);
-      --card2:rgba(0,0,0,.18);
-      --line:rgba(255,255,255,.10);
-      --muted:rgba(232,238,252,.70);
-      --text:#e8eefc;
-      --accent:rgba(46,196,196,.22);
-      --accentLine:rgba(46,196,196,.55);
-    }
-    body { margin:0; font-family: Arial, sans-serif; background:var(--bg); color:var(--text); }
-    .topbar{
-      padding:14px 16px;
-      border-bottom:1px solid rgba(255,255,255,.08);
-      display:flex; align-items:center; justify-content:space-between; gap:12px;
-      background:rgba(255,255,255,.02);
-    }
-    .leftTop{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
-    .pill{
-      padding:8px 12px; border-radius:999px; cursor:pointer;
-      border:1px solid rgba(255,255,255,.12);
-      background:rgba(255,255,255,.06);
-      user-select:none;
-    }
-    .pill.active{ background:var(--accent); border-color:var(--accentLine); }
-    .btn{
-      padding:8px 12px; border-radius:12px; cursor:pointer;
-      border:1px solid rgba(255,255,255,.14);
-      background:rgba(0,0,0,.25);
-      color:var(--text);
-    }
-    .btn.primary{ background:rgba(46,196,196,.18); border-color:rgba(46,196,196,.45); }
-    .badge{
-      display:inline-block; margin-left:8px; padding:2px 8px; border-radius:999px; font-size:12px;
-      background:rgba(255,138,33,.22); border:1px solid rgba(255,138,33,.55);
-    }
-    .wrap{ padding:16px; max-width:1280px; margin:0 auto; }
-    .grid2{
-      display:grid;
-      grid-template-columns: 1.25fr .95fr;
-      gap:14px;
-    }
-    .card{ border:1px solid var(--line); background:var(--card); border-radius:16px; padding:14px; }
-    .title{ font-weight:800; letter-spacing:.12em; font-size:14px; opacity:.85; }
-    .muted{ color:var(--muted); font-size:13px; }
-    .row{ display:flex; gap:10px; align-items:center; }
-    input, button{ font-family:inherit; }
-    input{
-      padding:10px 12px; border-radius:12px; border:1px solid rgba(255,255,255,.14);
-      background:rgba(0,0,0,.25); color:var(--text);
-      outline:none;
-    }
-    button{ cursor:pointer; }
-    .list{ display:flex; flex-direction:column; gap:10px; }
-    .item{ padding:10px 12px; border-radius:14px; border:1px solid rgba(255,255,255,.10); background:rgba(255,255,255,.03); }
-    .hide{ display:none; }
-
-    /* === Chat selector like ChatGPT (Tus chats ▼ + list) === */
-    .chatSelector{
-      margin-top:10px;
-      border:1px solid rgba(255,255,255,.10);
-      border-radius:14px;
-      background:rgba(0,0,0,.18);
-      overflow:hidden;
-    }
-    .chatSelHead{
-      padding:10px 12px;
-      display:flex; justify-content:space-between; align-items:center;
-      cursor:pointer; user-select:none;
-      background:rgba(255,255,255,.03);
-      border-bottom:1px solid rgba(255,255,255,.08);
-    }
-    .chatSelHead b{ font-size:13px; }
-    .chatSelList{
-      max-height:240px;
-      overflow:auto;
-      padding:8px;
-      display:flex; flex-direction:column; gap:8px;
-    }
-    .chatRow{
-      padding:10px 10px;
-      border-radius:12px;
-      border:1px solid rgba(255,255,255,.08);
-      background:rgba(255,255,255,.02);
-      cursor:pointer;
-    }
-    .chatRow.active{
-      background:rgba(46,196,196,.16);
-      border-color:rgba(46,196,196,.35);
-    }
-    .chatTitle{ font-weight:700; font-size:14px; }
-    .chatMeta{ color:rgba(232,238,252,.60); font-size:12px; margin-top:4px; }
-    .toast{
-      position:fixed; right:14px; bottom:14px; padding:12px 14px; border-radius:14px;
-      background:rgba(0,0,0,.75); border:1px solid rgba(255,255,255,.12);
-      display:none; max-width:420px;
-    }
-    .micro{
-      width:110px; height:110px; border-radius:999px;
-      border:1px solid rgba(255,255,255,.12);
-      background:rgba(0,0,0,.25);
-      display:flex; align-items:center; justify-content:center;
-      margin:14px auto 8px;
-      position:relative;
-    }
-    .micro::after{
-      content:"";
-      position:absolute; inset:-10px;
-      border-radius:999px;
-      border:2px solid rgba(46,196,196,.25);
-      filter:blur(.3px);
-    }
-    .microIcon{ font-size:28px; opacity:.9; }
-    .smallBtnRow{ display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
-  </style>
-</head>
-<body>
-
-  <div class="topbar">
-    <div class="leftTop">
-      <div class="pill active" id="tabCore">CORE</div>
-
-      <div class="pill" id="tabRem">
-        RECORDATORIOS <span class="badge" id="remBadge" style="display:none;">0</span>
-      </div>
-
-      <!-- ✅ Nuevo chat al lado de Recordatorios -->
-      <button class="btn primary" id="btnNewChat">+ Nuevo chat</button>
-
-      <span class="muted" id="status">WS: desconectado</span>
-    </div>
-
-    <div class="muted" id="activeChatLabel">Chat: -</div>
-  </div>
-
-  <div class="wrap">
-    <div class="grid2">
-
-      <!-- LEFT: REGISTRO + CHATS -->
-      <div class="card" id="viewCore">
-
-        <div class="row" style="justify-content:space-between; align-items:flex-start;">
-          <div>
-            <div class="title">REGISTRO DE CONVERSACIÓN</div>
-            <div class="muted">Escoge un chat y se mantiene la conversación (tipo ChatGPT).</div>
-          </div>
-          <div class="row">
-            <button class="btn" id="btnRefreshChats">↻ Chats</button>
-            <button class="btn" id="btnLoad">Cargar historial</button>
-          </div>
-        </div>
-
-        <!-- ✅ Tus chats dropdown/list -->
-        <div class="chatSelector">
-          <div class="chatSelHead" id="toggleChats">
-            <b>Tus chats</b>
-            <span class="muted">▼</span>
-          </div>
-          <div class="chatSelList" id="chatsList"></div>
-        </div>
-
-        <div style="height:12px;"></div>
-
-        <div class="row">
-          <input id="q" style="flex:1;" placeholder="Escribe una pregunta..." />
-          <button class="btn primary" id="btnAsk">Preguntar</button>
-        </div>
-
-        <div style="height:12px;"></div>
-
-        <div class="card" style="background:var(--card2);">
-          <div class="muted">Mensajes recientes</div>
-          <div style="height:6px;"></div>
-          <div id="coreList" class="list"></div>
-        </div>
-      </div>
-
-      <!-- RIGHT: SPEAKER / VOZ UI (placeholder visual) -->
-      <div class="card">
-        <div class="row" style="justify-content:space-between;">
-          <div>
-            <div style="font-weight:800;">Mantén presionada la tecla <b>ESPACIO</b> para hablar con Spectra AI</div>
-            <div class="muted">Suelta la tecla para enviar el mensaje.</div>
-          </div>
-          <a class="btn" href="/speaker" target="_blank" style="text-decoration:none; display:inline-flex; align-items:center; gap:8px;">
-            🔊 SPEAKER PC
-          </a>
-        </div>
-
-        <div class="micro">
-          <div class="microIcon">🎙️</div>
-        </div>
-        <div class="muted" style="text-align:center;">Espera tranquila... Listo para hablar con Spectra</div>
-
-        <div style="height:12px;"></div>
-
-        <div class="card" style="background:var(--card2);">
-          <div class="muted">Aquí verás la transcripción y la respuesta…</div>
-          <div style="height:10px;"></div>
-          <div id="liveBox" class="muted"></div>
-        </div>
-
-        <div class="smallBtnRow">
-          <button class="btn" id="btnUltima">Última medición</button>
-          <button class="btn" id="btnCrudo">Sensores (crudo)</button>
-          <button class="btn" id="btnOpenSpeaker">Abrir Speaker PC</button>
-        </div>
-
-        <div style="height:10px;"></div>
-
-        <div class="card hide" id="viewRem" style="background:var(--card2);">
-          <div style="font-weight:800;">Recordatorios</div>
-          <div class="muted">Llegan por /ws-app (type:"reminder").</div>
-          <div style="height:10px;"></div>
-          <div id="remList" class="list"></div>
-        </div>
-      </div>
-
-    </div>
-  </div>
-
-  <div class="toast" id="toast"></div>
-
-<script>
-  // ===== Tabs =====
-  const tabCore = document.getElementById("tabCore");
-  const tabRem  = document.getElementById("tabRem");
-  const viewCore = document.getElementById("viewCore");
-  const viewRem  = document.getElementById("viewRem");
-  const badge = document.getElementById("remBadge");
-  let unreadReminders = 0;
-
-  function setTab(name) {
-    if (name === "core") {
-      tabCore.classList.add("active");
-      tabRem.classList.remove("active");
-      viewCore.classList.remove("hide");
-      viewRem.classList.add("hide");
-    } else {
-      tabRem.classList.add("active");
-      tabCore.classList.remove("active");
-      viewRem.classList.remove("hide");
-      // al abrir recordatorios, se limpian "no leídos"
-      unreadReminders = 0;
-      badge.style.display = "none";
-      badge.textContent = "0";
-    }
-  }
-  tabCore.onclick = () => setTab("core");
-  tabRem.onclick  = () => setTab("rem");
-
-  // ===== UI =====
-  const coreList = document.getElementById("coreList");
-  const remList = document.getElementById("remList");
-  const status = document.getElementById("status");
-  const toast = document.getElementById("toast");
-  const liveBox = document.getElementById("liveBox");
-
-  function escapeHtml(s) {
-    return (s || "")
-      .replaceAll("&","&amp;")
-      .replaceAll("<","&lt;")
-      .replaceAll(">","&gt;");
-  }
-  function showToast(msg) {
-    toast.style.display = "block";
-    toast.innerHTML = escapeHtml(msg);
-    setTimeout(() => { toast.style.display = "none"; }, 3000);
-  }
-  function renderChat(user, assistant, ts) {
-    const div = document.createElement("div");
-    div.className = "item";
-    div.innerHTML = `
-      <div class="muted">${escapeHtml(ts || "")}</div>
-      <div style="margin-top:6px;"><b>Tú:</b> ${escapeHtml(user || "")}</div>
-      <div style="margin-top:6px;"><b>Spectra:</b> ${escapeHtml(assistant || "")}</div>
-    `;
-    coreList.prepend(div);
-  }
-  function addReminderToList(text, run_at) {
-    const div = document.createElement("div");
-    div.className = "item";
-    div.innerHTML = `
-      <div class="muted">${escapeHtml(run_at || "")}</div>
-      <div style="margin-top:6px;">⏰ ${escapeHtml(text || "")}</div>
-    `;
-    remList.prepend(div);
-  }
-
-  // ===== Multi-chat state =====
-  const chatsListEl = document.getElementById("chatsList");
-  const activeChatLabel = document.getElementById("activeChatLabel");
-  const toggleChats = document.getElementById("toggleChats");
-  let chatsOpen = true;
-
-  toggleChats.onclick = () => {
-    chatsOpen = !chatsOpen;
-    chatsListEl.style.display = chatsOpen ? "flex" : "none";
-  };
-
-  let currentChatId = localStorage.getItem("spectra_chat_id") || "default";
-
-  function setCurrentChat(id, title) {
-    currentChatId = id || "default";
-    localStorage.setItem("spectra_chat_id", currentChatId);
-    activeChatLabel.textContent = `Chat: ${title ? title : currentChatId}`;
-
-    [...document.querySelectorAll(".chatRow")].forEach(el => el.classList.remove("active"));
-    const item = document.querySelector(`[data-chat-id="${currentChatId}"]`);
-    if (item) item.classList.add("active");
-  }
-
-  async function loadChatsList() {
-    try {
-      const r = await fetch("/chats");
-      const j = await r.json();
-      const chats = j.chats || [];
-      chatsListEl.innerHTML = "";
-
-      if (!chats.find(c => c.id === "default")) {
-        chats.unshift({id:"default", title:"Default", updated_at:""});
-      }
-
-      chats.forEach(c => {
-        const div = document.createElement("div");
-        div.className = "chatRow";
-        div.setAttribute("data-chat-id", c.id);
-        div.innerHTML = `
-          <div class="chatTitle">${escapeHtml(c.title || c.id)}</div>
-          <div class="chatMeta">${escapeHtml(c.updated_at || "")}</div>
-        `;
-        div.onclick = async () => {
-          setCurrentChat(c.id, c.title || c.id);
-          await loadHistory();
-        };
-        chatsListEl.appendChild(div);
-      });
-
-      const current = chats.find(x => x.id === currentChatId) || chats[0];
-      if (current) setCurrentChat(current.id, current.title || current.id);
-
-    } catch (e) {
-      showToast("No pude cargar chats ❌");
-    }
-  }
-
-  document.getElementById("btnRefreshChats").onclick = loadChatsList;
-
-  document.getElementById("btnNewChat").onclick = async () => {
-    try {
-      const r = await fetch("/chats", {
-        method: "POST",
-        headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({ title: "Nuevo chat" })
-      });
-      const j = await r.json();
-      const chat = j.chat;
-
-      await loadChatsList();
-      setCurrentChat(chat.id, chat.title || chat.id);
-
-      coreList.innerHTML = "";
-      remList.innerHTML = "";
-      showToast("Nuevo chat creado ✅");
-      setTab("core");
-    } catch (e) {
-      showToast("No pude crear chat ❌");
-    }
-  };
-
-  // ===== Load history from backend =====
-  async function loadHistory() {
-    try {
-      const r = await fetch(`/chats/${encodeURIComponent(currentChatId)}?limit=120`);
-      const j = await r.json();
-      const hist = j.history || [];
-
-      coreList.innerHTML = "";
-      remList.innerHTML = "";
-
-      hist.forEach(item => {
-        const kind = item.kind || "";
-        if (kind === "ask" || kind === "talk" || kind === "talk_reminder") {
-          if (item.user || item.assistant) {
-            renderChat(item.user || "", item.assistant || "", item.ts || "");
-          }
-        }
-        if ((kind || "").includes("reminder")) {
-          const runAt = (item.meta && item.meta.run_at) ? item.meta.run_at : (item.ts || "");
-          addReminderToList(item.assistant || "", runAt);
-        }
-      });
-
-      showToast("Historial cargado ✅");
-    } catch (e) {
-      showToast("No pude cargar historial ❌");
-    }
-  }
-  document.getElementById("btnLoad").onclick = loadHistory;
-
-  // ===== Call /ask (con chat_id) =====
-  document.getElementById("btnAsk").onclick = async () => {
-    const q = document.getElementById("q").value.trim();
-    if (!q) return;
-    document.getElementById("q").value = "";
-    try {
-      const r = await fetch("/ask", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: q, chat_id: currentChatId })
-      });
-      const j = await r.json();
-      renderChat(q, j.answer || "", new Date().toISOString());
-      loadChatsList(); // refresca updated_at
-    } catch (e) {
-      renderChat(q, "Error consultando /ask", new Date().toISOString());
-    }
-  };
-
-  // ===== Quick buttons right side =====
-  document.getElementById("btnOpenSpeaker").onclick = () => window.open("/speaker", "_blank");
-  document.getElementById("btnUltima").onclick = async () => {
-    try {
-      const r = await fetch("/firebase/ultima");
-      const j = await r.json();
-      showToast("Última medición cargada ✅");
-      liveBox.innerHTML = escapeHtml(JSON.stringify(j.last || {}, null, 2));
-    } catch(e){ showToast("No pude cargar última medición ❌"); }
-  };
-  document.getElementById("btnCrudo").onclick = async () => {
-    try {
-      const r = await fetch("/firebase/sensores");
-      const j = await r.json();
-      showToast("Sensores (crudo) cargados ✅");
-      liveBox.innerHTML = escapeHtml(JSON.stringify(j.data || {}, null, 2)).slice(0, 2500) + "...";
-    } catch(e){ showToast("No pude cargar sensores ❌"); }
-  };
-
-  // ===== WebSockets =====
-  const wsProto = location.protocol === "https:" ? "wss" : "ws";
-
-  // Core WS (talk)
-  const wsCore = new WebSocket(`${wsProto}://${location.host}/ws`);
-  wsCore.onopen = () => status.textContent = "WS: conectado ✅";
-  wsCore.onclose = () => status.textContent = "WS: desconectado ❌";
-  wsCore.onerror = () => status.textContent = "WS: error ❌";
-
-  wsCore.onmessage = (ev) => {
-    try {
-      const data = JSON.parse(ev.data);
-      if (data.type === "talk") {
-        const msgChat = data.chat_id || "default";
-        // ✅ solo mostrar si coincide con el chat activo
-        if (msgChat !== currentChatId) return;
-
-        renderChat(data.transcript || "", data.answer || "", new Date().toISOString());
-        liveBox.innerHTML = escapeHtml((data.transcript || "") + "\n\n" + (data.answer || ""));
-      }
-    } catch (e) {}
-  };
-
-  // App WS (reminders)
-  const wsApp = new WebSocket(`${wsProto}://${location.host}/ws-app`);
-  wsApp.onmessage = (ev) => {
-    try {
-      const data = JSON.parse(ev.data);
-
-      if (data.type === "reminder") {
-        const msgChat = data.chat_id || "default";
-
-        // ✅ solo contar/mostrar si coincide con el chat activo
-        if (msgChat !== currentChatId) return;
-
-        addReminderToList(data.text || "", data.run_at || "");
-        showToast("⏰ " + (data.text || "Recordatorio"));
-
-        unreadReminders += 1;
-        badge.style.display = "inline-block";
-        badge.textContent = String(unreadReminders);
-        return;
-      }
-    } catch (e) {}
-  };
-
-  setInterval(() => {
-    if (wsCore.readyState === 1) wsCore.send("ping");
-    if (wsApp.readyState === 1) wsApp.send("ping");
-  }, 25000);
-
-  // init
-  (async () => {
-    await loadChatsList();
-    await loadHistory();
-  })();
-</script>
-</body>
-</html>
-"""
-
 @app.get("/app-spectra", response_class=HTMLResponse)
 def app_spectra_page():
     return r"""
@@ -1079,28 +567,23 @@ def app_spectra_page():
   <style>
     :root{
       --bg:#030718;
-      --bg2:#07112a;
-      --panel:rgba(8,15,35,.72);
-      --panel2:rgba(9,17,40,.88);
+      --panel:rgba(7,14,34,.78);
+      --panel2:rgba(10,18,42,.92);
       --line:rgba(130,170,255,.12);
-      --line-strong:rgba(71,126,255,.22);
       --text:#f4f7ff;
       --muted:rgba(216,226,255,.68);
-      --muted2:rgba(216,226,255,.52);
-
+      --muted2:rgba(216,226,255,.5);
       --cyan:#27d6ff;
-      --cyan2:#00c6ff;
       --blue:#5aa3ff;
       --purple:#9f5cff;
       --pink:#ff4fd8;
       --green:#36e07d;
       --orange:#ffb14a;
-
-      --shadow:0 20px 70px rgba(0,0,0,.45);
       --radius-xl:26px;
       --radius-lg:20px;
       --radius-md:16px;
       --radius-sm:12px;
+      --shadow:0 20px 70px rgba(0,0,0,.45);
     }
 
     *{ box-sizing:border-box; }
@@ -1112,7 +595,6 @@ def app_spectra_page():
       background:
         radial-gradient(900px 500px at 10% 0%, rgba(39,214,255,.12), transparent 55%),
         radial-gradient(900px 600px at 100% 0%, rgba(159,92,255,.10), transparent 50%),
-        radial-gradient(700px 450px at 50% 100%, rgba(0,198,255,.05), transparent 60%),
         linear-gradient(180deg, #020615 0%, #030816 100%);
       overflow:hidden;
     }
@@ -1124,15 +606,12 @@ def app_spectra_page():
       background:
         linear-gradient(to right, rgba(68,111,255,.05) 1px, transparent 1px),
         linear-gradient(to bottom, rgba(68,111,255,.04) 1px, transparent 1px);
-      background-size: 48px 48px;
+      background-size:48px 48px;
       mask-image: radial-gradient(circle at center, rgba(0,0,0,.95), transparent 90%);
       pointer-events:none;
-      z-index:0;
     }
 
     .shell{
-      position:relative;
-      z-index:1;
       width:min(100%, 1600px);
       height:100vh;
       margin:0 auto;
@@ -1143,11 +622,9 @@ def app_spectra_page():
       height:100%;
       border-radius:28px;
       border:1px solid rgba(120,155,255,.13);
-      background:
-        linear-gradient(180deg, rgba(4,10,26,.88), rgba(2,7,20,.94)),
-        radial-gradient(circle at 0% 0%, rgba(39,214,255,.05), transparent 30%);
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,.02), var(--shadow);
-      padding:16px 18px 16px;
+      background:linear-gradient(180deg, rgba(4,10,26,.88), rgba(2,7,20,.94));
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.02), var(--shadow);
+      padding:16px 18px;
       overflow:hidden;
     }
 
@@ -1173,10 +650,7 @@ def app_spectra_page():
       background:
         radial-gradient(circle at 35% 35%, rgba(255,255,255,.7), rgba(255,255,255,.12) 18%, transparent 22%),
         radial-gradient(circle at 35% 35%, #7df0ff 0%, #36d8ff 30%, #1593ff 62%, #0a4db8 100%);
-      box-shadow:
-        0 0 12px rgba(39,214,255,.45),
-        0 0 28px rgba(39,214,255,.22),
-        inset 0 0 12px rgba(255,255,255,.28);
+      box-shadow:0 0 12px rgba(39,214,255,.45), 0 0 28px rgba(39,214,255,.22), inset 0 0 12px rgba(255,255,255,.28);
       border:1px solid rgba(255,255,255,.16);
       flex:0 0 50px;
     }
@@ -1186,8 +660,6 @@ def app_spectra_page():
       letter-spacing:.34em;
       text-transform:uppercase;
       color:#4be4ff;
-      opacity:.95;
-      margin-top:1px;
       margin-bottom:2px;
     }
 
@@ -1208,7 +680,6 @@ def app_spectra_page():
       border-radius:999px;
       border:1px solid rgba(255,255,255,.09);
       background:rgba(255,255,255,.02);
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,.015);
       white-space:nowrap;
       margin-top:2px;
     }
@@ -1227,7 +698,6 @@ def app_spectra_page():
       letter-spacing:.25em;
       text-transform:uppercase;
       font-weight:800;
-      color:#eef7ff;
     }
 
     .online .sub{
@@ -1258,12 +728,12 @@ def app_spectra_page():
       padding:12px 18px;
       background:rgba(255,255,255,.035);
       border:1px solid rgba(255,255,255,.08);
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,.01);
       transition:.18s ease;
       font-weight:700;
       letter-spacing:.08em;
       text-transform:uppercase;
       font-size:13px;
+      text-decoration:none;
     }
 
     .pill:hover, .iconBtn:hover{
@@ -1275,40 +745,24 @@ def app_spectra_page():
     .pill.active{
       background:linear-gradient(180deg, rgba(0,198,255,.12), rgba(0,198,255,.06));
       border-color:rgba(39,214,255,.3);
-      box-shadow:0 0 0 1px rgba(39,214,255,.08) inset;
     }
 
-    .pill .accent{
-      color:var(--orange);
-      margin-right:8px;
-    }
-
-    .pillNew{
-      color:#efe8ff;
-    }
-
-    .pillNew .plus{
-      color:#a976ff;
-      font-size:20px;
-      line-height:0;
-      vertical-align:middle;
-      margin-right:8px;
-    }
-
-    .iconBtn{
-      padding:11px 18px;
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      text-decoration:none;
-    }
+    .pill .accent{ color:var(--orange); margin-right:8px; }
+    .pillNew .plus{ color:#a976ff; font-size:20px; line-height:0; vertical-align:middle; margin-right:8px; }
 
     .main{
       height:calc(100% - 126px);
-      display:grid;
-      grid-template-columns: 1.42fr .95fr;
-      gap:18px;
       padding-top:2px;
+    }
+
+    .view{ height:100%; display:none; }
+    .view.active{ display:block; }
+
+    .coreGrid{
+      height:100%;
+      display:grid;
+      grid-template-columns:1.42fr .95fr;
+      gap:18px;
     }
 
     .panel{
@@ -1316,14 +770,16 @@ def app_spectra_page():
       background:linear-gradient(180deg, rgba(5,11,28,.58), rgba(5,11,28,.4));
       border:1px solid rgba(124,157,255,.10);
       border-radius:24px;
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,.02);
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.02);
       overflow:hidden;
     }
 
-    .leftPanel{
+    .leftPanel, .rightPanel, .remPanel{
+      padding:16px 16px 14px;
       display:flex;
       flex-direction:column;
-      padding:16px 16px 14px;
+      min-height:0;
+      height:100%;
     }
 
     .sectionHead{
@@ -1355,6 +811,7 @@ def app_spectra_page():
       min-height:0;
       display:flex;
       flex-direction:column;
+      flex:1;
     }
 
     .chatHead{
@@ -1365,10 +822,7 @@ def app_spectra_page():
       margin-bottom:10px;
     }
 
-    .miniLabel{
-      font-size:14px;
-      color:#dce8ff;
-    }
+    .miniLabel{ font-size:14px; color:#dce8ff; }
 
     .chatBadge{
       border-radius:999px;
@@ -1380,33 +834,24 @@ def app_spectra_page():
       white-space:nowrap;
     }
 
+    .chatList, .messagesBox, .tasksBox{
+      overflow:auto;
+    }
+
     .chatList{
       display:flex;
       flex-direction:column;
       gap:10px;
       max-height:280px;
-      overflow:auto;
       padding-right:4px;
-    }
-
-    .chatList::-webkit-scrollbar,
-    .messagesBox::-webkit-scrollbar,
-    .responseBox::-webkit-scrollbar{
-      width:8px;
-    }
-    .chatList::-webkit-scrollbar-thumb,
-    .messagesBox::-webkit-scrollbar-thumb,
-    .responseBox::-webkit-scrollbar-thumb{
-      background:rgba(255,255,255,.12);
-      border-radius:999px;
     }
 
     .chatRow{
       display:grid;
-      grid-template-columns: 1fr auto;
+      grid-template-columns:1fr auto;
       gap:12px;
       align-items:center;
-      padding:14px 14px;
+      padding:14px;
       border-radius:16px;
       border:1px solid rgba(255,255,255,.08);
       background:rgba(255,255,255,.02);
@@ -1414,16 +859,10 @@ def app_spectra_page():
       transition:.16s ease;
     }
 
-    .chatRow:hover{
-      border-color:rgba(39,214,255,.22);
-      transform:translateY(-1px);
-      background:rgba(255,255,255,.03);
-    }
-
+    .chatRow:hover{ border-color:rgba(39,214,255,.22); background:rgba(255,255,255,.03); }
     .chatRow.active{
       background:linear-gradient(180deg, rgba(0,198,255,.13), rgba(0,198,255,.07));
       border-color:rgba(39,214,255,.35);
-      box-shadow:0 0 0 1px rgba(39,214,255,.07) inset;
     }
 
     .chatTitle{
@@ -1436,10 +875,7 @@ def app_spectra_page():
       margin-bottom:4px;
     }
 
-    .chatMeta{
-      font-size:13px;
-      color:var(--muted2);
-    }
+    .chatMeta{ font-size:13px; color:var(--muted2); }
 
     .deleteChat{
       width:34px;
@@ -1450,12 +886,6 @@ def app_spectra_page():
       color:#ffd6e7;
       cursor:pointer;
       font-size:15px;
-      transition:.16s ease;
-    }
-
-    .deleteChat:hover{
-      background:rgba(255,85,136,.15);
-      transform:translateY(-1px);
     }
 
     .messagesWrap{
@@ -1466,10 +896,9 @@ def app_spectra_page():
       flex-direction:column;
     }
 
-    .messagesBox{
+    .messagesBox, .tasksBox{
       flex:1;
       min-height:72px;
-      overflow:auto;
       border-radius:16px;
       border:1px solid rgba(255,255,255,.06);
       background:rgba(255,255,255,.015);
@@ -1479,37 +908,57 @@ def app_spectra_page():
       gap:10px;
     }
 
-    .msg{
+    .msg, .taskItem{
       border-radius:14px;
       border:1px solid rgba(255,255,255,.07);
       background:rgba(255,255,255,.02);
       padding:10px 12px;
     }
 
-    .msg .meta{
+    .msg .meta, .taskMeta{
       font-size:12px;
       color:var(--muted2);
       margin-bottom:6px;
     }
 
-    .msg .line{
+    .msg .line, .taskText{
       font-size:14px;
       color:#eff5ff;
       line-height:1.5;
-      margin-bottom:5px;
       white-space:pre-wrap;
       word-break:break-word;
     }
 
-    .msg .line:last-child{
-      margin-bottom:0;
+    .taskTop{
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      align-items:flex-start;
     }
 
-    .rightPanel{
-      padding:16px 16px 14px;
+    .taskActions{
       display:flex;
-      flex-direction:column;
-      min-height:0;
+      gap:8px;
+      flex-wrap:wrap;
+      margin-top:10px;
+    }
+
+    .smallBtn{
+      border:none;
+      border-radius:10px;
+      border:1px solid rgba(255,255,255,.08);
+      background:rgba(255,255,255,.05);
+      color:#eef5ff;
+      padding:8px 12px;
+      cursor:pointer;
+      font-size:12px;
+      font-weight:700;
+    }
+
+    .smallBtn.danger{
+      border-color:rgba(255,110,160,.25);
+      background:rgba(255,85,136,.08);
+      color:#ffdbe8;
     }
 
     .voiceCard{
@@ -1518,23 +967,14 @@ def app_spectra_page():
       background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.015));
       border:1px solid rgba(255,255,255,.06);
       border-radius:22px;
-      padding:16px 16px 14px;
+      padding:16px;
       display:flex;
       flex-direction:column;
       gap:12px;
     }
 
-    .voiceTitle{
-      font-size:16px;
-      line-height:1.4;
-      color:#eaf1ff;
-      margin-bottom:2px;
-    }
-
-    .voiceSub{
-      color:var(--muted);
-      font-size:13px;
-    }
+    .voiceTitle{ font-size:16px; line-height:1.4; }
+    .voiceSub{ color:var(--muted); font-size:13px; }
 
     .spacePill{
       display:inline-flex;
@@ -1554,20 +994,11 @@ def app_spectra_page():
       background:rgba(255,255,255,.03);
       font-weight:800;
       letter-spacing:.1em;
-      color:#f4f8ff;
     }
 
-    .spaceText{
-      color:var(--muted);
-      font-size:14px;
-    }
+    .spaceText{ color:var(--muted); font-size:14px; }
 
-    .micWrap{
-      display:flex;
-      justify-content:center;
-      align-items:center;
-      padding:6px 0 2px;
-    }
+    .micWrap{ display:flex; justify-content:center; align-items:center; padding:6px 0 2px; }
 
     .micOuter{
       position:relative;
@@ -1579,10 +1010,7 @@ def app_spectra_page():
       background:
         radial-gradient(circle at center, rgba(255,255,255,.04) 0%, rgba(255,255,255,.02) 42%, transparent 60%),
         radial-gradient(circle at center, rgba(39,214,255,.12), rgba(159,92,255,.08), transparent 70%);
-      box-shadow:
-        0 0 28px rgba(39,214,255,.12),
-        0 0 60px rgba(159,92,255,.08),
-        inset 0 0 20px rgba(255,255,255,.03);
+      box-shadow:0 0 28px rgba(39,214,255,.12), 0 0 60px rgba(159,92,255,.08), inset 0 0 20px rgba(255,255,255,.03);
     }
 
     .micOuter::before{
@@ -1591,7 +1019,6 @@ def app_spectra_page():
       inset:14px;
       border-radius:50%;
       border:1px solid rgba(255,255,255,.06);
-      box-shadow: inset 0 0 15px rgba(255,255,255,.02);
     }
 
     .micInner{
@@ -1600,12 +1027,8 @@ def app_spectra_page():
       border-radius:50%;
       display:grid;
       place-items:center;
-      background:
-        linear-gradient(135deg, rgba(39,214,255,.95), rgba(159,92,255,.92), rgba(255,79,216,.9));
-      box-shadow:
-        0 0 10px rgba(255,255,255,.15) inset,
-        0 0 18px rgba(39,214,255,.25),
-        0 0 24px rgba(159,92,255,.2);
+      background:linear-gradient(135deg, rgba(39,214,255,.95), rgba(159,92,255,.92), rgba(255,79,216,.9));
+      box-shadow:0 0 18px rgba(39,214,255,.25), 0 0 24px rgba(159,92,255,.2);
       font-size:22px;
     }
 
@@ -1636,7 +1059,7 @@ def app_spectra_page():
 
     .qaRow{
       display:grid;
-      grid-template-columns: 1fr auto;
+      grid-template-columns:1fr auto;
       gap:10px;
       align-items:center;
     }
@@ -1653,11 +1076,6 @@ def app_spectra_page():
       width:100%;
     }
 
-    .askInput:focus{
-      border-color:rgba(39,214,255,.28);
-      box-shadow:0 0 0 3px rgba(39,214,255,.06);
-    }
-
     .askBtn{
       height:46px;
       border-radius:14px;
@@ -1667,12 +1085,6 @@ def app_spectra_page():
       padding:0 18px;
       font-weight:800;
       cursor:pointer;
-      transition:.16s ease;
-    }
-
-    .askBtn:hover{
-      background:rgba(255,255,255,.1);
-      transform:translateY(-1px);
     }
 
     .quickBtns{
@@ -1690,12 +1102,6 @@ def app_spectra_page():
       padding:12px 16px;
       cursor:pointer;
       font-weight:700;
-      transition:.16s ease;
-    }
-
-    .quickBtn:hover{
-      transform:translateY(-1px);
-      background:rgba(255,255,255,.08);
     }
 
     .bottomBar{
@@ -1724,21 +1130,31 @@ def app_spectra_page():
       vertical-align:middle;
     }
 
-    .hidden{ display:none !important; }
-
-    @media (max-width: 1200px){
-      .main{ grid-template-columns:1fr; }
-      .rightPanel{ min-height:520px; }
+    .registroWrap{
+      height:100%;
+      border-radius:24px;
+      border:1px solid rgba(124,157,255,.10);
+      overflow:hidden;
+      background:rgba(5,11,28,.55);
     }
 
-    @media (max-width: 720px){
+    .registroFrame{
+      width:100%;
+      height:100%;
+      border:none;
+      background:#07112a;
+    }
+
+    @media (max-width:1200px){
+      .coreGrid{ grid-template-columns:1fr; }
+    }
+
+    @media (max-width:720px){
       .shell{ padding:10px; }
       .frame{ padding:12px; border-radius:20px; }
       .top, .toolbar{ flex-direction:column; align-items:flex-start; }
-      .toolbarRight{ width:100%; }
       .qaRow{ grid-template-columns:1fr; }
-      .chatHead{ flex-direction:column; align-items:flex-start; }
-      .sectionHead{ flex-direction:column; align-items:flex-start; }
+      .chatHead, .sectionHead{ flex-direction:column; align-items:flex-start; }
     }
   </style>
 </head>
@@ -1763,18 +1179,10 @@ def app_spectra_page():
 
       <div class="toolbar">
         <div class="toolbarLeft">
-          <button class="pill active" id="tabCore">
-            <span class="accent">⚡</span>CORE
-          </button>
-
-          <button class="pill" id="tabRem">
-            ⏱ RECORDATORIOS
-            <span class="reminderBadge" id="remBadge">0</span>
-          </button>
-
-          <button class="pill pillNew" id="btnNewChat">
-            <span class="plus">＋</span>NUEVO CHAT
-          </button>
+          <button class="pill active" id="tabCore"><span class="accent">⚡</span>CORE</button>
+          <button class="pill" id="tabRem">⏱ RECORDATORIOS <span class="reminderBadge" id="remBadge">0</span></button>
+          <button class="pill" id="tabRegistro">📦 REGISTRO</button>
+          <button class="pill pillNew" id="btnNewChat"><span class="plus">＋</span>NUEVO CHAT</button>
         </div>
 
         <div class="toolbarRight">
@@ -1783,76 +1191,89 @@ def app_spectra_page():
       </div>
 
       <div class="main">
-        <div class="panel leftPanel" id="viewCore">
-          <div class="sectionHead">
-            <div class="sectionTitle">REGISTRO DE CONVERSACIÓN</div>
-            <div class="sectionMeta">Mensajes recientes</div>
-          </div>
+        <div class="view active" id="viewCore">
+          <div class="coreGrid">
+            <div class="panel leftPanel">
+              <div class="sectionHead">
+                <div class="sectionTitle">REGISTRO DE CONVERSACIÓN</div>
+                <div class="sectionMeta">Mensajes recientes</div>
+              </div>
 
-          <div class="chatPanel">
-            <div class="chatHead">
-              <div class="miniLabel">Tus chats ▼</div>
-              <div class="chatBadge" id="activeChatLabel">Chat: Default</div>
+              <div class="chatPanel">
+                <div class="chatHead">
+                  <div class="miniLabel">Tus chats ▼</div>
+                  <div class="chatBadge" id="activeChatLabel">Chat: Default</div>
+                </div>
+
+                <div class="chatList" id="chatsList"></div>
+
+                <div class="messagesWrap">
+                  <div class="messagesBox" id="coreList"></div>
+                </div>
+              </div>
             </div>
 
-            <div class="chatList" id="chatsList"></div>
+            <div class="panel rightPanel">
+              <div class="voiceCard">
+                <div class="voiceTitle">
+                  Mantén presionada la tecla <b>ESPACIO</b> para hablar con Spectra AI.
+                  Suelta la tecla para enviar el mensaje.
+                </div>
 
-            <div class="messagesWrap">
-              <div class="messagesBox" id="coreList"></div>
+                <div class="spacePill">
+                  <div class="spaceKey">SPACE</div>
+                  <div class="spaceText">Presiona y mantén para grabar</div>
+                </div>
+
+                <div class="micWrap">
+                  <div class="micOuter">
+                    <div class="micInner">🎙</div>
+                  </div>
+                </div>
+
+                <div class="micStatus" id="micStatus">Espera tranquila... Listo para hablar con Spectra</div>
+
+                <div class="responseBox" id="liveBox">Aquí verás la transcripción y la respuesta...</div>
+
+                <div class="qaRow">
+                  <input id="q" class="askInput" placeholder="Escribe una pregunta (opcional)..." />
+                  <button class="askBtn" id="btnAsk">Preguntar</button>
+                </div>
+
+                <div class="quickBtns">
+                  <button class="quickBtn" id="btnUltima">Última medición</button>
+                  <button class="quickBtn" id="btnCrudo">Sensores (crudo)</button>
+                  <button class="quickBtn" id="btnRefreshChats">Actualizar chats</button>
+                </div>
+
+                <div class="quickBtns">
+                  <button class="quickBtn" id="btnLoad">Cargar historial</button>
+                  <button class="quickBtn" id="btnOpenSpeaker">Abrir Speaker PC</button>
+                </div>
+
+                <div class="bottomBar">
+                  <div id="status">WS: desconectado</div>
+                  <div id="miniState">Chat activo: default</div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        <div class="panel rightPanel">
-          <div class="voiceCard">
-            <div class="voiceTitle">
-              Mantén presionada la tecla <b>ESPACIO</b> para hablar con Spectra AI.
-              Suelta la tecla para enviar el mensaje.
+        <div class="view" id="viewRem">
+          <div class="panel remPanel">
+            <div class="sectionHead">
+              <div class="sectionTitle">RECORDATORIOS</div>
+              <div class="sectionMeta">Tareas y recordatorios programados</div>
             </div>
 
-            <div class="spacePill">
-              <div class="spaceKey">SPACE</div>
-              <div class="spaceText">Presiona y mantén para grabar</div>
-            </div>
+            <div class="tasksBox" id="remList"></div>
+          </div>
+        </div>
 
-            <div class="micWrap">
-              <div class="micOuter" id="micOuter">
-                <div class="micInner">🎙</div>
-              </div>
-            </div>
-
-            <div class="micStatus" id="micStatus">
-              Espera tranquila... Listo para hablar con Spectra
-            </div>
-
-            <div class="responseBox" id="liveBox">
-              Aquí verás la transcripción y la respuesta...
-            </div>
-
-            <div class="qaRow">
-              <input id="q" class="askInput" placeholder="Escribe una pregunta (opcional)..." />
-              <button class="askBtn" id="btnAsk">Preguntar</button>
-            </div>
-
-            <div class="quickBtns">
-              <button class="quickBtn" id="btnUltima">Última medición</button>
-              <button class="quickBtn" id="btnCrudo">Sensores (crudo)</button>
-              <button class="quickBtn" id="btnRefreshChats">Actualizar chats</button>
-            </div>
-
-            <div class="quickBtns">
-              <button class="quickBtn" id="btnLoad">Cargar historial</button>
-              <button class="quickBtn" id="btnOpenSpeaker">Abrir Speaker PC</button>
-            </div>
-
-            <div class="messagesWrap hidden" id="viewRemWrap" style="margin-top:2px;">
-              <div class="messagesBox" id="remList"></div>
-            </div>
-
-            <div class="bottomBar">
-              <div id="status">WS: desconectado</div>
-              <div id="miniState">Chat activo: default</div>
-            </div>
+        <div class="view" id="viewRegistro">
+          <div class="registroWrap">
+            <iframe class="registroFrame" src="/registro"></iframe>
           </div>
         </div>
       </div>
@@ -1862,8 +1283,11 @@ def app_spectra_page():
 <script>
   const tabCore = document.getElementById("tabCore");
   const tabRem = document.getElementById("tabRem");
+  const tabRegistro = document.getElementById("tabRegistro");
   const viewCore = document.getElementById("viewCore");
-  const viewRemWrap = document.getElementById("viewRemWrap");
+  const viewRem = document.getElementById("viewRem");
+  const viewRegistro = document.getElementById("viewRegistro");
+
   const remBadge = document.getElementById("remBadge");
   const chatsListEl = document.getElementById("chatsList");
   const coreList = document.getElementById("coreList");
@@ -1884,25 +1308,29 @@ def app_spectra_page():
       .replaceAll(">","&gt;");
   }
 
-  function showCore(){
-    tabCore.classList.add("active");
-    tabRem.classList.remove("active");
-    viewCore.classList.remove("hidden");
-    viewRemWrap.classList.add("hidden");
+  function setView(name){
+    [viewCore, viewRem, viewRegistro].forEach(v => v.classList.remove("active"));
+    [tabCore, tabRem, tabRegistro].forEach(t => t.classList.remove("active"));
+
+    if(name === "core"){
+      viewCore.classList.add("active");
+      tabCore.classList.add("active");
+    }else if(name === "rem"){
+      viewRem.classList.add("active");
+      tabRem.classList.add("active");
+      unreadReminders = 0;
+      remBadge.textContent = "0";
+      remBadge.style.display = "none";
+      loadTasks();
+    }else{
+      viewRegistro.classList.add("active");
+      tabRegistro.classList.add("active");
+    }
   }
 
-  function showReminders(){
-    tabRem.classList.add("active");
-    tabCore.classList.remove("active");
-    viewCore.classList.add("hidden");
-    viewRemWrap.classList.remove("hidden");
-    unreadReminders = 0;
-    remBadge.textContent = "0";
-    remBadge.style.display = "none";
-  }
-
-  tabCore.onclick = showCore;
-  tabRem.onclick = showReminders;
+  tabCore.onclick = () => setView("core");
+  tabRem.onclick = () => setView("rem");
+  tabRegistro.onclick = () => setView("registro");
 
   function setCurrentChat(id, title){
     currentChatId = id || "default";
@@ -1926,22 +1354,76 @@ def app_spectra_page():
     coreList.prepend(div);
   }
 
-  function addReminder(text, run_at){
+  function renderTask(task){
+    const text = task.text || task.assistant || "Recordatorio";
+    const runAt = task.run_at || task.created_at || "";
+    const done = !!task.done;
+
     const div = document.createElement("div");
-    div.className = "msg";
+    div.className = "taskItem";
     div.innerHTML = `
-      <div class="meta">${escapeHtml(run_at || "")}</div>
-      <div class="line">⏰ ${escapeHtml(text || "")}</div>
+      <div class="taskTop">
+        <div>
+          <div class="taskText">${done ? "✅ " : "⏰ "}${escapeHtml(text)}</div>
+          <div class="taskMeta">${escapeHtml(runAt)}</div>
+        </div>
+      </div>
+      <div class="taskActions">
+        ${!done ? `<button class="smallBtn danger" data-del="${escapeHtml(task.id || "")}">Eliminar</button>` : ``}
+      </div>
     `;
-    remList.prepend(div);
+
+    const del = div.querySelector("[data-del]");
+    if(del){
+      del.addEventListener("click", async () => {
+        const id = del.getAttribute("data-del");
+        if(!id) return;
+        if(!confirm("¿Eliminar este recordatorio?")) return;
+        try{
+          const r = await fetch(`/tasks/${encodeURIComponent(id)}`, { method:"DELETE" });
+          if(!r.ok) throw new Error("No se pudo eliminar");
+          await loadTasks();
+        }catch(e){
+          alert("No pude eliminar el recordatorio ❌");
+        }
+      });
+    }
+
+    remList.appendChild(div);
+  }
+
+  async function loadTasks(){
+    try{
+      remList.innerHTML = "";
+      const r = await fetch("/tasks");
+      const j = await r.json();
+      const tasks = j.tasks || [];
+      if(!tasks.length){
+        remList.innerHTML = `<div class="msg"><div class="line">No hay recordatorios todavía.</div></div>`;
+        return;
+      }
+
+      const ordered = [...tasks].sort((a,b) => String(b.run_at || "").localeCompare(String(a.run_at || "")));
+      ordered.forEach(renderTask);
+    }catch(e){
+      remList.innerHTML = `<div class="msg"><div class="line">No pude cargar recordatorios ❌</div></div>`;
+    }
   }
 
   async function loadChatsList(){
     try{
-      const r = await fetch("/chats");
-      const j = await r.json();
-      const chats = j.chats || [];
+      const r = await fetch("/chats", {
+        method:"GET",
+        headers:{ "Cache-Control":"no-cache" }
+      });
 
+      const text = await r.text();
+      let j = {};
+      try{ j = JSON.parse(text); }catch(e){ throw new Error(text || "Respuesta inválida"); }
+
+      if(!r.ok) throw new Error(j.error || "No se pudo cargar chats");
+
+      const chats = j.chats || [];
       chatsListEl.innerHTML = "";
 
       if(!chats.find(c => c.id === "default")){
@@ -1993,23 +1475,22 @@ def app_spectra_page():
       });
 
       const current = chats.find(x => x.id === currentChatId) || chats[0];
-      if(current){
-        setCurrentChat(current.id, current.title || current.id);
-      }
+      if(current) setCurrentChat(current.id, current.title || current.id);
     }catch(e){
       console.error(e);
+      chatsListEl.innerHTML = `<div class="msg"><div class="line">No pude cargar chats ❌</div></div>`;
     }
   }
 
   async function loadHistory(){
     try{
-      const r = await fetch(`/chats/${encodeURIComponent(currentChatId)}?limit=120`);
+      const r = await fetch(`/chats/${encodeURIComponent(currentChatId)}?limit=120`, {
+        headers:{ "Cache-Control":"no-cache" }
+      });
       const j = await r.json();
       const hist = j.history || [];
 
       coreList.innerHTML = "";
-      remList.innerHTML = "";
-
       hist.forEach(item => {
         const kind = item.kind || "";
         if(kind === "ask" || kind === "talk" || kind === "talk_reminder" || kind === "talk_calendar" || kind === "talk_calendar_delete"){
@@ -2017,23 +1498,19 @@ def app_spectra_page():
             renderChat(item.user || "", item.assistant || "", item.ts || "");
           }
         }
-        if(kind.includes("reminder")){
-          const when = item?.meta?.run_at || item.ts || "";
-          addReminder(item.assistant || "", when);
-        }
       });
+
+      if(!hist.length){
+        coreList.innerHTML = `<div class="msg"><div class="line">Este chat no tiene mensajes todavía.</div></div>`;
+      }
     }catch(e){
       console.error(e);
+      coreList.innerHTML = `<div class="msg"><div class="line">No pude cargar historial ❌</div></div>`;
     }
   }
 
-  document.getElementById("btnRefreshChats").onclick = async () => {
-    await loadChatsList();
-  };
-
-  document.getElementById("btnLoad").onclick = async () => {
-    await loadHistory();
-  };
+  document.getElementById("btnRefreshChats").onclick = async () => { await loadChatsList(); };
+  document.getElementById("btnLoad").onclick = async () => { await loadHistory(); };
 
   document.getElementById("btnNewChat").onclick = async () => {
     try{
@@ -2042,14 +1519,22 @@ def app_spectra_page():
         headers:{ "Content-Type":"application/json" },
         body: JSON.stringify({ title:"Nuevo chat" })
       });
-      const j = await r.json();
+
+      const text = await r.text();
+      let j = {};
+      try{ j = JSON.parse(text); }catch(e){ throw new Error(text || "Respuesta inválida"); }
+
+      if(!r.ok || !j.chat) throw new Error(j.error || "No pude crear chat");
+
       const chat = j.chat;
       await loadChatsList();
       setCurrentChat(chat.id, chat.title || chat.id);
       coreList.innerHTML = "";
-      remList.innerHTML = "";
-      showCore();
+      liveBox.textContent = "Aquí verás la transcripción y la respuesta...";
+      await loadHistory();
+      setView("core");
     }catch(e){
+      console.error(e);
       alert("No pude crear chat ❌");
     }
   };
@@ -2077,9 +1562,7 @@ def app_spectra_page():
     }
   };
 
-  document.getElementById("btnOpenSpeaker").onclick = () => {
-    window.open("/speaker", "_blank");
-  };
+  document.getElementById("btnOpenSpeaker").onclick = () => window.open("/speaker", "_blank");
 
   document.getElementById("btnUltima").onclick = async () => {
     try{
@@ -2134,10 +1617,10 @@ def app_spectra_page():
       if(data.type === "reminder"){
         const msgChat = data.chat_id || "default";
         if(msgChat !== currentChatId) return;
-        addReminder(data.text || "", data.run_at || "");
         unreadReminders += 1;
         remBadge.style.display = "inline-block";
         remBadge.textContent = String(unreadReminders);
+        loadTasks();
       }
     }catch(e){}
   };
@@ -2150,13 +1633,13 @@ def app_spectra_page():
   (async () => {
     await loadChatsList();
     await loadHistory();
-    showCore();
+    await loadTasks();
+    setView("core");
   })();
 </script>
 </body>
 </html>
 """
-
 # ===============================
 # ✅ AGENDA / RECORDATORIOS (persistente) + chat_id
 # ===============================
