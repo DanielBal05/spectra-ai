@@ -292,7 +292,7 @@ def auth_admin():
     session["role"] = "admin"
     session["student_name"] = None
     session["banner_id"] = None
-    return jsonify({"ok": True, "redirect": "/spectra"}), 200
+    return jsonify({"ok": True, "redirect": "/"}), 200
 
 @app.route("/auth/student", methods=["POST"])
 def auth_student():
