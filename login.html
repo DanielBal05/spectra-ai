@@ -391,24 +391,23 @@ input:focus{
 
 <script>
 function showAdmin(){
-  document.getElementById("roleSelector").style.display="none";
-  document.getElementById("adminForm").style.display="block";
+  document.getElementById("roleSelector").style.display = "none";
+  document.getElementById("adminForm").style.display = "block";
 }
 
 function showStudent(){
-  document.getElementById("roleSelector").style.display="none";
-  document.getElementById("studentForm").style.display="block";
+  document.getElementById("roleSelector").style.display = "none";
+  document.getElementById("studentForm").style.display = "block";
 }
 
 function goBack(){
-  document.getElementById("adminForm").style.display="none";
-  document.getElementById("studentForm").style.display="none";
-  document.getElementById("roleSelector").style.display="block";
+  document.getElementById("adminForm").style.display = "none";
+  document.getElementById("studentForm").style.display = "none";
+  document.getElementById("roleSelector").style.display = "block";
   document.getElementById("adminError").textContent = "";
   document.getElementById("studentError").textContent = "";
 }
 
-/* ✅ NUEVO: leer next desde la URL del login */
 function getNext(){
   const params = new URLSearchParams(window.location.search);
   return params.get("next") || "";
@@ -419,22 +418,28 @@ async function loginAdmin(){
   const next = getNext();
 
   if(!password){
-    document.getElementById("adminError").textContent="Ingresa la contraseña ❗";
+    document.getElementById("adminError").textContent = "Ingresa la contraseña ❗";
     return;
   }
 
-const r = await fetch("/auth/admin", {
-  method: "POST",
-  headers: {"Content-Type": "application/json"},
-  body: JSON.stringify({ password, next })
-});}
+  try{
+    const r = await fetch("/auth/admin", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({ password, next })
+    });
 
-const j = await r.json();
+    const j = await r.json().catch(() => ({}));
 
-if (j.ok) {
-  window.location.href = j.redirect || "/";
-} else {
-  alert(j.error || "No se pudo iniciar sesión");
+    if(!r.ok){
+      document.getElementById("adminError").textContent = j.error || "Error al iniciar sesión ❌";
+      return;
+    }
+
+    window.location.href = j.redirect || "/";
+  }catch(e){
+    document.getElementById("adminError").textContent = "Error de red ❌";
+  }
 }
 
 async function loginStudent(){
@@ -443,22 +448,27 @@ async function loginStudent(){
   const next = getNext() || "/registro-estudiante";
 
   if(!name || !banner_id){
-    document.getElementById("studentError").textContent="Completa Nombre e ID Banner ❗";
+    document.getElementById("studentError").textContent = "Completa Nombre e ID Banner ❗";
     return;
   }
 
-  const r = await fetch("/auth/student",{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({ name, banner_id, next })
-  });
+  try{
+    const r = await fetch("/auth/student", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({ name, banner_id, next })
+    });
 
-  const j = await r.json().catch(()=> ({}));
+    const j = await r.json().catch(() => ({}));
 
-  if(!r.ok){
-    document.getElementById("studentError").textContent = j.error || "Error";
-  }else{
-    window.location.href = j.redirect;
+    if(!r.ok){
+      document.getElementById("studentError").textContent = j.error || "Error ❌";
+      return;
+    }
+
+    window.location.href = j.redirect || "/registro-estudiante";
+  }catch(e){
+    document.getElementById("studentError").textContent = "Error de red ❌";
   }
 }
 </script>
