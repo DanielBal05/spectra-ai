@@ -7,12 +7,8 @@ import sys
 import os
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+APP_DIR = r"C:\Users\DANIEL\Desktop\APP"
 
-# Ruta real donde está tu Flask
-FLASK_DIR = r"C:\Users\DANIEL\Desktop\APP"
-
-if FLASK_DIR not in sys.path:
-    sys.path.insert(0, FLASK_DIR)
 
 from app import app as flask_app
 
@@ -570,7 +566,12 @@ setInterval(() => { if (ws.readyState === 1) ws.send("ping"); }, 25000);
 
 @app.get("/app-spectra")
 def app_spectra_page():
-    return FileResponse(os.path.join(BASE_DIR, "templates", "index.html"))
+    file_path = os.path.join(APP_DIR, "templates", "index.html")
+
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail=f"No existe: {file_path}")
+
+    return FileResponse(file_path)
 
 # ===============================
 # ✅ AGENDA / RECORDATORIOS (persistente) + chat_id
