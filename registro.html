@@ -19,7 +19,9 @@
       --chip:#111a33;
       --panel:#061021;
     }
+
     *{box-sizing:border-box;margin:0;padding:0}
+
     body{
       font-family:system-ui,-apple-system,Segoe UI,sans-serif;
       background: radial-gradient(circle at top, #0b1120 0, #020617 45%, #000 100%);
@@ -27,23 +29,45 @@
       min-height:100vh;
       padding:24px;
     }
+
     .top{
-      display:flex;align-items:center;justify-content:space-between;
-      gap:12px; margin-bottom:18px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:18px;
     }
+
     .title{
-      font-size:18px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);
+      font-size:18px;
+      letter-spacing:.18em;
+      text-transform:uppercase;
+      color:var(--muted);
     }
-    .topRight{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;align-items:center}
+
+    .topRight{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+      align-items:center;
+    }
+
     .linkBtn{
-      color:var(--cyan);text-decoration:none;font-weight:700;
-      border:1px solid #1b2a3a; padding:10px 14px; border-radius:14px;
+      color:var(--cyan);
+      text-decoration:none;
+      font-weight:700;
+      border:1px solid #1b2a3a;
+      padding:10px 14px;
+      border-radius:14px;
       background:#071026;
     }
+
     .pillTop{
       background: var(--panel);
       border:1px solid #1f2a44;
-      padding:8px 12px;border-radius:999px;
+      padding:8px 12px;
+      border-radius:999px;
       color:var(--muted);
       font-size:12px;
       display:none;
@@ -55,6 +79,7 @@
       gap:18px;
       align-items:start;
     }
+
     .card{
       background:var(--card);
       border:1px solid var(--stroke);
@@ -62,11 +87,58 @@
       padding:16px;
       box-shadow:0 10px 30px rgba(0,0,0,.35);
     }
+
     .card h3{
-      font-size:14px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);
+      font-size:14px;
+      letter-spacing:.18em;
+      text-transform:uppercase;
+      color:var(--muted);
       margin-bottom:10px;
     }
-    label{display:block;font-size:12px;color:var(--muted);margin:10px 0 6px}
+
+    .cardHead{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-bottom:10px;
+    }
+
+    .cardHead h3{
+      margin-bottom:0;
+    }
+
+    .downloadBtn{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      padding:10px 12px;
+      border-radius:14px;
+      border:1px solid rgba(34,211,238,.28);
+      background:rgba(34,211,238,.12);
+      color:var(--text);
+      text-decoration:none;
+      font-weight:800;
+      font-size:13px;
+      white-space:nowrap;
+      transition:transform .18s ease, opacity .18s ease, border-color .18s ease;
+    }
+
+    .downloadBtn:hover{
+      transform:translateY(-1px);
+      opacity:.96;
+      border-color:rgba(34,211,238,.45);
+    }
+
+    label{
+      display:block;
+      font-size:12px;
+      color:var(--muted);
+      margin:10px 0 6px;
+    }
+
     select, input{
       width:100%;
       padding:12px 12px;
@@ -76,7 +148,11 @@
       color:var(--text);
       outline:none;
     }
-    select:focus, input:focus{border-color:rgba(34,211,238,.45)}
+
+    select:focus, input:focus{
+      border-color:rgba(34,211,238,.45);
+    }
+
     .btn{
       width:100%;
       margin-top:14px;
@@ -88,28 +164,57 @@
       font-weight:800;
       cursor:pointer;
     }
-    .btn:disabled{opacity:.55;cursor:not-allowed}
-    .hint{margin-top:10px;color:var(--muted);font-size:12px;line-height:1.35}
+
+    .btn:disabled{
+      opacity:.55;
+      cursor:not-allowed;
+    }
+
+    .hint{
+      margin-top:10px;
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.35;
+    }
 
     .listHead{
-      display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;
-      gap:10px; flex-wrap:wrap;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      margin-bottom:12px;
+      gap:10px;
+      flex-wrap:wrap;
     }
+
     .pill{
       background: var(--panel);
       border:1px solid #1f2a44;
-      padding:8px 12px;border-radius:999px;
+      padding:8px 12px;
+      border-radius:999px;
       color:var(--muted);
       font-size:12px;
     }
+
     .filters{
-      display:flex;gap:10px;flex-wrap:wrap;align-items:center;
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
     }
+
     .filters select{
-      width:auto; min-width:170px;
+      width:auto;
+      min-width:170px;
       padding:10px 10px;
       border-radius:12px;
       background:#050b18;
+    }
+
+    .listaWrap{
+      margin-top:6px;
+      max-height:560px;
+      overflow-y:auto;
+      padding-right:4px;
     }
 
     .item{
@@ -122,40 +227,114 @@
       background:#060c1b;
       margin-bottom:12px;
     }
-    .row1{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+
+    .row1{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+
     .chip{
       background:var(--chip);
       border:1px solid #22304b;
       color:var(--muted);
-      padding:6px 10px;border-radius:999px;
+      padding:6px 10px;
+      border-radius:999px;
       font-size:12px;
     }
-    .name{font-size:16px;font-weight:900}
-    .sub{color:var(--muted);font-size:12px;margin-top:6px}
-    .actions{display:flex;flex-direction:column;gap:10px;justify-content:center}
+
+    .name{
+      font-size:16px;
+      font-weight:900;
+    }
+
+    .sub{
+      color:var(--muted);
+      font-size:12px;
+      margin-top:6px;
+      line-height:1.5;
+    }
+
+    .actions{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      justify-content:center;
+    }
+
     .btnSmall{
-      padding:10px 12px;border-radius:14px;border:1px solid #1f2a44;
-      background:#071026;color:var(--text);cursor:pointer;font-weight:800;
+      padding:10px 12px;
+      border-radius:14px;
+      border:1px solid #1f2a44;
+      background:#071026;
+      color:var(--text);
+      cursor:pointer;
+      font-weight:800;
       min-width:150px;
     }
-    .btnOk{background:rgba(74,222,128,.12); border-color:rgba(74,222,128,.28)}
-    .btnCopy{background:rgba(34,211,238,.12); border-color:rgba(34,211,238,.28)}
-    .btnSmall:disabled{opacity:.55;cursor:not-allowed}
-    .statusPrestado{color:var(--cyan);font-weight:900}
-    .statusDevuelto{color:var(--ok);font-weight:900}
+
+    .btnOk{
+      background:rgba(74,222,128,.12);
+      border-color:rgba(74,222,128,.28);
+    }
+
+    .btnDanger{
+      background:rgba(249,115,115,.12);
+      border-color:rgba(249,115,115,.28);
+      color:#ffd4d4;
+    }
+
+    .btnCopy{
+      background:rgba(34,211,238,.12);
+      border-color:rgba(34,211,238,.28);
+    }
+
+    .btnSmall:disabled{
+      opacity:.55;
+      cursor:not-allowed;
+    }
+
+    .statusPrestado{
+      color:var(--cyan);
+      font-weight:900;
+    }
+
+    .statusDevuelto{
+      color:var(--ok);
+      font-weight:900;
+    }
+
+    .empty{
+      padding:18px;
+      border-radius:16px;
+      border:1px dashed #22304b;
+      background:#060c1b;
+      color:var(--muted);
+      text-align:center;
+    }
 
     .toast{
-      position:fixed; right:18px; bottom:18px;
-      background:#071026;border:1px solid #1f2a44;
-      padding:12px 14px;border-radius:14px;
-      color:var(--text); display:none;
+      position:fixed;
+      right:18px;
+      bottom:18px;
+      background:#071026;
+      border:1px solid #1f2a44;
+      padding:12px 14px;
+      border-radius:14px;
+      color:var(--text);
+      display:none;
       box-shadow:0 10px 30px rgba(0,0,0,.4);
       max-width:520px;
       line-height:1.35;
       white-space:pre-line;
+      z-index:9999;
     }
+
     @media (max-width: 980px){
       .grid{grid-template-columns:1fr}
+      .item{grid-template-columns:1fr}
+      .actions{flex-direction:row;flex-wrap:wrap}
     }
   </style>
 </head>
@@ -171,9 +350,19 @@
   </div>
 
   <div class="grid">
-    <!-- FORM -->
     <div class="card">
-      <h3>Registrar préstamo</h3>
+      <div class="cardHead">
+        <h3>Registrar préstamo</h3>
+        <a
+          class="downloadBtn"
+          href="/api/lab/descargar"
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Descargar última versión del Google Sheets"
+        >
+          ⬇ Descargar Sheets
+        </a>
+      </div>
 
       <label>Nombre</label>
       <input id="nombre" type="text" placeholder="Ej: Juan Perez" autocomplete="name" />
@@ -196,7 +385,6 @@
       </div>
     </div>
 
-    <!-- LISTA -->
     <div class="card">
       <div class="listHead">
         <h3 style="margin:0;">Lista de préstamos</h3>
@@ -211,7 +399,11 @@
         </div>
       </div>
 
-      <div id="lista"></div>
+      <div class="listaWrap">
+        <div id="lista">
+          <div class="empty">Cargando préstamos...</div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -220,49 +412,47 @@
 <script>
   const $ = (id) => document.getElementById(id);
 
-  // ✅ guardamos sesión aquí para usarlo al registrar
   let SESSION = { role: null, student_name: "", banner_id: "" };
 
   function toast(msg){
     const t = $("toast");
     t.textContent = msg;
     t.style.display = "block";
-    setTimeout(()=> t.style.display="none", 3200);
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => {
+      t.style.display = "none";
+    }, 3200);
   }
 
-  // ✅ cargar sesión (whoami) y autollenar nombre/banner
   async function preloadStudent(){
     try{
       const r = await fetch("/whoami", { cache:"no-store" });
-      const j = await r.json().catch(()=> ({}));
+      const j = await r.json().catch(() => ({}));
       if(!r.ok || j.ok === false) return;
 
       SESSION.role = j.role || null;
       SESSION.student_name = j.student_name || "";
       SESSION.banner_id = j.banner_id || "";
 
-      // Mostrar pill si es estudiante
+      const pill = $("whoPill");
+
       if (SESSION.role === "student"){
-        const pill = $("whoPill");
         pill.textContent = `Estudiante: ${SESSION.student_name || "—"} | Banner: ${SESSION.banner_id || "—"}`;
         pill.style.display = "inline-flex";
 
-        // Autollenar nombre si está vacío
         const nameInput = $("nombre");
         if(nameInput && !nameInput.value && SESSION.student_name){
           nameInput.value = SESSION.student_name;
         }
       } else if (SESSION.role === "admin"){
-        const pill = $("whoPill");
-        pill.textContent = `Admin activo ✅`;
+        pill.textContent = "Admin activo ✅";
         pill.style.display = "inline-flex";
       }
     }catch(e){
-      // silencio
+      console.error("Error cargando sesión:", e);
     }
   }
 
-  // ✅ normaliza keys
   function kNorm(k){
     return (k ?? "")
       .toString()
@@ -276,7 +466,7 @@
   function pick(obj, candidates){
     if(!obj || typeof obj !== "object") return "";
     for(const c of candidates){
-      if(obj[c] !== undefined && obj[c] !== null) return obj[c];
+      if(obj[c] !== undefined && obj[c] !== null && obj[c] !== "") return obj[c];
     }
     const map = {};
     for(const key of Object.keys(obj)){
@@ -284,7 +474,7 @@
     }
     for(const c of candidates){
       const v = map[kNorm(c)];
-      if(v !== undefined && v !== null) return v;
+      if(v !== undefined && v !== null && v !== "") return v;
     }
     return "";
   }
@@ -297,7 +487,7 @@
       Nombre: (pick(x, ["Nombre","nombre","name","estudiante","alumno"]) ?? "").toString(),
       Semestre: (pick(x, ["Semestre","semestre","semester","nivel"]) ?? "").toString(),
       Equipo: (pick(x, ["Equipo","equipo","item","material","dispositivo"]) ?? "").toString(),
-      BannerID: (pick(x, ["BannerID","banner_id","bannerid","id_banner","banner"]) ?? "").toString(), // ✅ opcional
+      BannerID: (pick(x, ["BannerID","banner_id","bannerid","id_banner","banner"]) ?? "").toString(),
       Estado: (pick(x, ["Prestado/ Devuelto","Prestado/Devuelto","prestado_devuelto","Estado","estado","status"]) ?? "").toString(),
     }));
   }
@@ -316,6 +506,49 @@
     return "otro";
   }
 
+  function formatFecha(fecha){
+    if(!fecha) return "-";
+    return fecha;
+  }
+
+  function extractItems(payload){
+    if (Array.isArray(payload)) return payload;
+
+    if (payload && typeof payload === "object"){
+      if (Array.isArray(payload.items)) return payload.items;
+      if (Array.isArray(payload.data)) return payload.data;
+      if (Array.isArray(payload.rows)) return payload.rows;
+      if (Array.isArray(payload.result)) return payload.result;
+
+      if (typeof payload.items === "string"){
+        try{
+          const parsed = JSON.parse(payload.items);
+          if (Array.isArray(parsed)) return parsed;
+        }catch(e){}
+      }
+
+      if (typeof payload.data === "string"){
+        try{
+          const parsed = JSON.parse(payload.data);
+          if (Array.isArray(parsed)) return parsed;
+        }catch(e){}
+      }
+
+      if (typeof payload.rows === "string"){
+        try{
+          const parsed = JSON.parse(payload.rows);
+          if (Array.isArray(parsed)) return parsed;
+        }catch(e){}
+      }
+
+      if (payload.ok === true && payload.item && typeof payload.item === "object"){
+        return [payload.item];
+      }
+    }
+
+    return [];
+  }
+
   function render(items){
     const list = $("lista");
     list.innerHTML = "";
@@ -327,19 +560,25 @@
       filtered = filtered.filter(it => stateKey(it) === filtro);
     }
 
-    filtered.sort((a,b) => (b.Fecha || "").localeCompare(a.Fecha || ""));
+    filtered.sort((a, b) => (b.Fecha || "").localeCompare(a.Fecha || ""));
     $("countPill").textContent = `${filtered.length} items`;
+
+    if(filtered.length === 0){
+      list.innerHTML = `<div class="empty">No hay préstamos para mostrar.</div>`;
+      return;
+    }
 
     for(const it of filtered){
       const st = stateKey(it);
       const isPrestado = st === "prestado";
-      const statusClass = isPrestado ? "statusPrestado" : "statusDevuelto";
-      const statusText = isPrestado ? "Prestado" : (st === "devuelto" ? "Devuelto" : it.Estado || "—");
+      const isDevuelto = st === "devuelto";
+
+      const statusClass = isPrestado ? "statusPrestado" : (isDevuelto ? "statusDevuelto" : "");
+      const statusText = isPrestado ? "Prestado" : (isDevuelto ? "Devuelto" : (it.Estado || "—"));
+      const bannerChip = it.BannerID ? `<span class="chip">Banner: ${it.BannerID}</span>` : "";
 
       const div = document.createElement("div");
       div.className = "item";
-
-      const bannerChip = it.BannerID ? `<span class="chip">Banner: ${it.BannerID}</span>` : "";
 
       div.innerHTML = `
         <div>
@@ -351,52 +590,62 @@
             <span class="chip">ID: ${it.ID || "-"}</span>
           </div>
           <div class="sub">
-            <span>Fecha: ${it.Fecha || "-"}</span>
+            <span>Fecha: ${formatFecha(it.Fecha)}</span>
             &nbsp;•&nbsp;
             <span class="${statusClass}">${statusText}</span>
           </div>
         </div>
+
         <div class="actions">
-          <button class="btnSmall btnCopy" data-copy="${it.ID || ""}" ${it.ID ? "" : "disabled"}>Copiar ID</button>
+          <button class="btnSmall btnCopy" data-copy="${it.ID || ""}" ${it.ID ? "" : "disabled"}>
+            Copiar ID
+          </button>
+
           ${
             isPrestado
-              ? `<button class="btnSmall btnOk" data-dev="${it.ID || ""}" ${it.ID ? "" : "disabled"}>Devuelto</button>`
-              : `<button class="btnSmall" disabled>✅ Devuelto</button>`
+              ? `<button class="btnSmall btnDanger" data-dev="${it.ID || ""}" ${it.ID ? "" : "disabled"}>Devolver</button>`
+              : `<button class="btnSmall btnOk" disabled>✅ Devuelto</button>`
           }
         </div>
       `;
+
       list.appendChild(div);
     }
 
-    list.querySelectorAll("button[data-copy]").forEach(btn=>{
+    list.querySelectorAll("button[data-copy]").forEach(btn => {
       btn.addEventListener("click", async () => {
         const id = btn.getAttribute("data-copy") || "";
         if(!id) return toast("No hay ID ❌");
+
         try{
           await navigator.clipboard.writeText(id);
           toast(`ID copiado ✅\n${id}`);
         }catch(e){
-          toast("No pude copiar (permiso del navegador) ❌");
+          toast("No pude copiar el ID ❌");
         }
       });
     });
 
-    list.querySelectorAll("button[data-dev]").forEach(btn=>{
+    list.querySelectorAll("button[data-dev]").forEach(btn => {
       btn.addEventListener("click", async () => {
         const id = btn.getAttribute("data-dev") || "";
         if(!id) return toast("No hay ID para devolver ❌");
 
-        const ok = confirm(`¿Marcar como DEVUELTO?\n\nID: ${id}`);
+        const ok = confirm(`¿Marcar este préstamo como DEVUELTO?\n\nID: ${id}`);
         if(!ok) return;
 
         btn.disabled = true;
+        btn.textContent = "Devolviendo...";
+
         try{
           const r = await fetch("/api/lab/devolver", {
             method:"POST",
-            headers:{"Content-Type":"application/json"},
+            headers:{ "Content-Type":"application/json" },
             body: JSON.stringify({ id })
           });
-          const j = await r.json().catch(()=> ({}));
+
+          const j = await r.json().catch(() => ({}));
+
           if(!r.ok || j.ok === false){
             toast(j.error || j.msg || "Error devolviendo ❌");
           }else{
@@ -407,28 +656,47 @@
           toast("Error de red devolviendo ❌");
         }finally{
           btn.disabled = false;
+          btn.textContent = "Devolver";
         }
       });
     });
   }
 
   async function load(){
+    const list = $("lista");
+    list.innerHTML = `<div class="empty">Cargando préstamos...</div>`;
+
     try{
-      const r = await fetch("/api/lab/listar", { cache:"no-store" });
-      const j = await r.json().catch(()=> ({}));
+      const r = await fetch("/api/lab/listar", {
+        method: "GET",
+        cache: "no-store",
+        headers: {
+          "Accept": "application/json"
+        }
+      });
+
+      const rawText = await r.text();
+      let payload = {};
+
+      try{
+        payload = rawText ? JSON.parse(rawText) : {};
+      }catch(e){
+        console.error("La respuesta de /api/lab/listar no es JSON válido:", rawText);
+        list.innerHTML = `<div class="empty">La respuesta del servidor no vino en JSON.</div>`;
+        return toast("La ruta /api/lab/listar no devolvió JSON ❌");
+      }
+
       if(!r.ok){
-        return toast(j.error || j.msg || `Error listando (${r.status}) ❌`);
+        list.innerHTML = `<div class="empty">No se pudo cargar la lista.</div>`;
+        return toast(payload.error || payload.msg || `Error listando (${r.status}) ❌`);
       }
 
-      let items = j.items ?? j.data ?? j.rows ?? j;
-      if (typeof items === "string"){
-        try { items = JSON.parse(items); } catch(e){ items = []; }
-      }
-      if (!Array.isArray(items)) items = [];
-
-      const normalized = normalizeItems(items);
+      const extracted = extractItems(payload);
+      const normalized = normalizeItems(extracted);
       render(normalized);
     }catch(e){
+      console.error("Error cargando lista:", e);
+      list.innerHTML = `<div class="empty">No se pudo cargar la lista.</div>`;
       toast("No se pudo cargar la lista ❌");
     }
   }
@@ -440,44 +708,53 @@
     const nombre = $("nombre").value.trim();
     const semestre = $("semestre").value.trim();
     const equipo = $("equipo").value.trim();
+
     if(!nombre || !semestre || !equipo){
       return toast("Completa Nombre, Semestre y Equipo ❗");
     }
 
-    // ✅ si es estudiante, mandamos banner_id junto al préstamo
     const banner_id = (SESSION.role === "student") ? (SESSION.banner_id || "") : "";
 
     $("btnRegistrar").disabled = true;
+    $("btnRegistrar").textContent = "Registrando...";
+
     try{
       const r = await fetch("/api/lab/prestar", {
         method:"POST",
-        headers:{"Content-Type":"application/json"},
+        headers:{ "Content-Type":"application/json" },
         body: JSON.stringify({ nombre, semestre, equipo, banner_id })
       });
-      const j = await r.json().catch(()=> ({}));
+
+      const j = await r.json().catch(() => ({}));
 
       if(!r.ok || j.ok === false){
         toast(j.error || j.msg || "Error registrando ❌");
-      } else {
+      }else{
         const id = j.id || j.ID || j.item?.ID || j.data?.ID;
         toast(id ? `Préstamo registrado ✅\nID: ${id}` : "Préstamo registrado ✅");
+
+        $("equipo").value = "";
         await load();
       }
     }catch(e){
       toast("Error de red registrando ❌");
     }finally{
       $("btnRegistrar").disabled = false;
+      $("btnRegistrar").textContent = "Registrar";
     }
   });
 
-  ["nombre","equipo"].forEach(id=>{
-    $(id).addEventListener("keydown", (e)=>{
+  ["nombre", "equipo"].forEach(id => {
+    $(id).addEventListener("keydown", (e) => {
       if(e.key === "Enter") $("btnRegistrar").click();
     });
   });
 
-  // ✅ IMPORTANTE: primero preload (whoami) y luego carga lista
-  (async ()=>{
+  $("semestre").addEventListener("keydown", (e) => {
+    if(e.key === "Enter") $("btnRegistrar").click();
+  });
+
+  (async () => {
     await preloadStudent();
     await load();
   })();
