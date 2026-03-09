@@ -2,9 +2,23 @@ from fastapi import FastAPI, HTTPException, UploadFile, File, WebSocket, WebSock
 from fastapi.responses import HTMLResponse, RedirectResponse
 from pydantic import BaseModel
 from fastapi.middleware.wsgi import WSGIMiddleware
+
+import sys
+import os
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# Ruta real donde está tu Flask
+FLASK_DIR = r"C:\Users\DANIEL\Desktop\APP"
+
+if FLASK_DIR not in sys.path:
+    sys.path.insert(0, FLASK_DIR)
+
 from app import app as flask_app
+
 import requests
-import os, uuid, subprocess
+import uuid
+import subprocess
 import json
 import re
 from datetime import datetime, timedelta
@@ -63,7 +77,7 @@ if PYTTSX3_ENABLED:
 
 # ✅ STT local (Whisper) (OPCIONAL / pesado)
 # Importarlo al arranque puede tumbar Render por RAM/tiempo. Mejor lazy-load.
-WHISPER_MODEL_NAME = os.getenv("WHISPER_MODEL", "small").strip()
+WHISPER_MODEL_NAME = os.getenv("WHISPER_MODEL", "tiny").strip()
 whisper_model = None
 
 def get_whisper():
@@ -117,7 +131,7 @@ OLLAMA_PORT = os.getenv("OLLAMA_PORT", "11434").strip()
 OLLAMA_URL = f"http://{OLLAMA_HOST}:{OLLAMA_PORT}/api/generate"
 OLLAMA_TAGS_URL = f"http://{OLLAMA_HOST}:{OLLAMA_PORT}/api/tags"
 
-MODEL = os.getenv("OLLAMA_MODEL", "llama3.1:8b").strip()
+MODEL = os.getenv("OLLAMA_MODEL", "phi3:mini").strip()
 
 # ====================
 # 🌐 Tavily (búsqueda web)
@@ -1852,6 +1866,147 @@ class TaskCreateReq(BaseModel):
     in_minutes: Optional[int] = None
     chat_id: Optional[str] = "default"
 
+class ChatCreateReq(BaseModel):
+    title: Optional[str] = "Nuevo chat"
+
+# ===============================
+# ✅ Multi-chat local (JSON)
+# ===============================
+CHATS_DIR = "chats"
+os.makedirs(CHATS_DIR, exist_ok=True)
+
+def _sanitize_chat_id(chat_id: str) -> str:
+    chat_id = (chat_id or "default").strip().lower()
+    chat_id = re.sub(r"[^a-z0-9_\-]", "-", chat_id)
+    return chat_id or "default"
+
+def _chat_file(chat_id: str) -> str:
+    return os.path.join(CHATS_DIR, f"{_sanitize_chat_id(chat_id)}.json")
+
+def _ensure_chat_exists(chat_id: str, title: Optional[str] = None):
+    chat_id = _sanitize_chat_id(chat_id)
+    path = _chat_file(chat_id)
+
+    if not os.path.exists(path):
+        data = {
+            "id": chat_id,
+            "title": title or ("Default" if chat_id == "default" else "Nuevo chat"),
+            "created_at": datetime.now(TZ).isoformat(),
+            "updated_at": datetime.now(TZ).isoformat(),
+            "history": []
+        }
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+
+def _load_chat(chat_id: str) -> dict:
+    chat_id = _sanitize_chat_id(chat_id)
+    _ensure_chat_exists(chat_id)
+
+    with open(_chat_file(chat_id), "r", encoding="utf-8") as f:
+        return json.load(f)
+
+def _save_chat(chat: dict):
+    chat_id = _sanitize_chat_id(chat.get("id") or "default")
+    chat["id"] = chat_id
+    chat["updated_at"] = datetime.now(TZ).isoformat()
+
+    with open(_chat_file(chat_id), "w", encoding="utf-8") as f:
+        json.dump(chat, f, ensure_ascii=False, indent=2)
+
+def save_chat_event(kind: str, user_text=None, assistant_text=None, meta=None, chat_id: str = "default"):
+    chat_id = _sanitize_chat_id(chat_id)
+    chat = _load_chat(chat_id)
+
+    event = {
+        "kind": kind,
+        "user": user_text,
+        "assistant": assistant_text,
+        "meta": meta or {},
+        "ts": datetime.now(TZ).isoformat()
+    }
+
+    chat.setdefault("history", []).append(event)
+    _save_chat(chat)
+    return event
+
+# ===============================
+# HELPERS PARA RESPUESTAS
+# ===============================
+
+SYSTEM_STYLE_SHORT = (
+    "Eres Spectra AI. Responde en español, claro, corto y útil."
+)
+
+SYSTEM_STYLE_LONG = (
+    "Eres Spectra AI. Responde en español, claro, útil y un poco más detallado cuando te lo pidan."
+)
+
+MAX_CHARS_SHORT = 500
+MAX_CHARS_LONG = 1500
+
+def wants_detailed(text: str) -> bool:
+    t = (text or "").lower()
+    keywords = [
+        "explica",
+        "explícame",
+        "detalla",
+        "detallado",
+        "detalle",
+        "profundo",
+        "a fondo",
+        "paso a paso",
+        "desarrolla",
+        "amplía",
+        "amplia",
+    ]
+    return any(k in t for k in keywords)
+
+def compact_answer(text: str, max_chars: int = 500) -> str:
+    text = (text or "").strip()
+    if len(text) <= max_chars:
+        return text
+    return text[:max_chars].rstrip() + "..."
+
+def needs_sensors_context(text: str) -> bool:
+    t = (text or "").lower()
+    keys = ["sensor", "sensores", "medición", "medicion", "temperatura", "humedad", "firebase"]
+    return any(k in t for k in keys)
+
+def needs_online(text: str) -> bool:
+    t = (text or "").lower()
+    keys = ["internet", "web", "busca", "buscar", "actual", "actualizado", "última", "ultima", "noticia", "noticias"]
+    return any(k in t for k in keys)
+
+def compute_analytics_obj(question: str):
+    return None, ""
+
+def format_tavily_context(tav_result: dict) -> str:
+    if not isinstance(tav_result, dict):
+        return ""
+    results = tav_result.get("results", []) or []
+    lines = []
+    for r in results[:5]:
+        title = r.get("title", "")
+        content = r.get("content", "")
+        url = r.get("url", "")
+        lines.append(f"- {title}\n  {content}\n  {url}")
+    return "\n".join(lines).strip()
+
+def build_answer_from_analytics_text(analytics_obj, detailed: bool = False) -> str:
+    if not analytics_obj:
+        return "No encontré datos analíticos para responder eso."
+    return str(analytics_obj)
+
+
+# ===============================
+# UTILIDADES PARA CHAT
+# ===============================
+
+def _sanitize_chat_id(chat_id: str) -> str:
+    chat_id = (chat_id or "default").strip().lower()
+    chat_id = re.sub(r"[^a-z0-9_\-]", "-", chat_id)
+    return chat_id or "default"
+
 @app.get("/tasks")
 def list_tasks():
     return {"ok": True, "tasks": _load_tasks()}
@@ -1963,83 +2118,101 @@ class AskReq(BaseModel):
     question: str
     chat_id: Optional[str] = "default"
 
+def ask_ollama(prompt: str) -> str:
+    payload = {
+        "model": MODEL,
+        "prompt": prompt,
+        "stream": False
+    }
+
+    r = requests.post(OLLAMA_URL, json=payload, timeout=120)
+    r.raise_for_status()
+
+    data = r.json()
+    return (data.get("response") or "").strip()
+
 # ===============================
 # ✅ /ask (texto)
 # ===============================
 @app.post("/ask")
 def ask(req: AskReq):
-    chat_id = _sanitize_chat_id(req.chat_id or "default")
-    _ensure_chat_exists(chat_id)
-
-    detailed = wants_detailed(req.question)
-    system_style = SYSTEM_STYLE_LONG if detailed else SYSTEM_STYLE_SHORT
-    max_chars = MAX_CHARS_LONG if detailed else MAX_CHARS_SHORT
-
-    sensores_ctx = ""
-    analytics_obj = None
-    if needs_sensors_context(req.question):
-        analytics_obj, sensores_ctx = compute_analytics_obj(req.question)
-
-    web_ctx = ""
-    if needs_online(req.question):
-        tav = tavily_search(req.question, max_results=5)
-        if tav.get("ok"):
-            web_ctx = format_tavily_context(tav)
-        else:
-            web_ctx = f"No se pudo buscar en internet: {tav.get('error','')}"
-
-    prompt = (
-        f"{system_style}\n\n"
-        + (f"{sensores_ctx}\n\n" if sensores_ctx else "")
-        + f"Evidencia web (si aplica):\n{web_ctx}\n\n"
-        f"Usuario: {req.question}\n"
-        f"Asistente:"
-    )
-
-    # ✅ Intentar responder con Ollama, pero sin tumbar Render si no existe
     try:
-        raw_answer = ask_ollama(prompt)
-        answer = compact_answer(raw_answer, max_chars=max_chars)
+        chat_id = _sanitize_chat_id(req.chat_id or "default")
+        _ensure_chat_exists(chat_id)
 
-    except Exception as e:
-        # Log para Render (esto te aparece en Logs)
-        print("❌ /ask error:", repr(e))
+        detailed = wants_detailed(req.question)
+        system_style = SYSTEM_STYLE_LONG if detailed else SYSTEM_STYLE_SHORT
+        max_chars = MAX_CHARS_LONG if detailed else MAX_CHARS_SHORT
 
-        # ✅ Fallback 1: si había analytics, responde con eso
-        if analytics_obj:
-            answer = compact_answer(
-                build_answer_from_analytics_text(analytics_obj, detailed=detailed),
-                max_chars=max_chars
-            )
-        else:
-            # ✅ Fallback 2: responde algo claro (sin 500)
-            answer = compact_answer(
-                "Spectra: En este servidor no hay motor de IA activo (Ollama no está disponible). "
-                "Configura un OLLAMA remoto o usa Gemini con GEMINI_API_KEY.",
-                max_chars=max_chars
-            )
+        sensores_ctx = ""
+        analytics_obj = None
+        if needs_sensors_context(req.question):
+            analytics_obj, sensores_ctx = compute_analytics_obj(req.question)
 
-    save_chat_event(
-        "ask",
-        user_text=req.question,
-        assistant_text=answer,
-        meta={
+        web_ctx = ""
+        if needs_online(req.question):
+            tav = tavily_search(req.question, max_results=5)
+            if tav.get("ok"):
+                web_ctx = format_tavily_context(tav)
+            else:
+                web_ctx = f"No se pudo buscar en internet: {tav.get('error','')}"
+
+        prompt = (
+            f"{system_style}\n\n"
+            + (f"{sensores_ctx}\n\n" if sensores_ctx else "")
+            + f"Evidencia web (si aplica):\n{web_ctx}\n\n"
+            f"Usuario: {req.question}\n"
+            f"Asistente:"
+        )
+
+        try:
+            raw_answer = ask_ollama(prompt)
+            answer = compact_answer(raw_answer, max_chars=max_chars)
+        except Exception as e:
+            print("❌ /ask error en Ollama:", repr(e))
+
+            if analytics_obj:
+                answer = compact_answer(
+                    build_answer_from_analytics_text(analytics_obj, detailed=detailed),
+                    max_chars=max_chars
+                )
+            else:
+                answer = compact_answer(
+                    "Spectra: En este servidor no hay motor de IA activo (Ollama no está disponible).",
+                    max_chars=max_chars
+                )
+
+        save_chat_event(
+            "ask",
+            user_text=req.question,
+            assistant_text=answer,
+            meta={
+                "used_web": bool(web_ctx),
+                "used_sensors": bool(sensores_ctx),
+                "detailed": detailed,
+            },
+            chat_id=chat_id
+        )
+
+        return {
+            "ok": True,
+            "answer": answer,
             "used_web": bool(web_ctx),
             "used_sensors": bool(sensores_ctx),
+            "analytics": analytics_obj,
             "detailed": detailed,
-            "ollama_ok": True  # ojo: aquí no sabemos si falló o no, si quieres lo afinamos
-        },
-        chat_id=chat_id
-    )
+            "chat_id": chat_id
+        }
 
-    return {
-        "answer": answer,
-        "used_web": bool(web_ctx),
-        "used_sensors": bool(sensores_ctx),
-        "analytics": analytics_obj,
-        "detailed": detailed,
-        "chat_id": chat_id
-    }
+    except Exception as e:
+        import traceback
+        print("❌ ERROR REAL EN /ask")
+        traceback.print_exc()
+        return {
+            "ok": False,
+            "error": str(e)
+        }
+    
 # ===============================
 # ✅ /talk (voz)
 # ===============================
@@ -2338,6 +2511,9 @@ def chats_delete_proxy(chat_id: str):
 def ask_proxy(req: AskReq):
     return ask(req)
 
+@app.post("/talk-proxy")
+async def talk_proxy(audio: UploadFile = File(...), chat_id: str = "default"):
+    return await talk(audio=audio, chat_id=chat_id)
 
 @app.get("/firebase/sensores-proxy")
 def sensores_proxy():
