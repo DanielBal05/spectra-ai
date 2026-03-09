@@ -31,6 +31,7 @@ from typing import Optional
 from dotenv import load_dotenv
 load_dotenv()
 
+print("MAIN REAL CARGADO:", os.path.abspath(__file__))
 # ===============================
 # ✅ TIMEZONE (Render-safe)
 # ===============================
@@ -112,8 +113,6 @@ app = FastAPI(
     openapi_url="/openapi.json",
     swagger_ui_parameters={"tryItOutEnabled": True},
 )
-
-
 
 app.add_middleware(
     CORSMiddleware,
@@ -2538,3 +2537,14 @@ def delete_task_proxy(task_id: str):
 # Montar Flask (login antiguo)
 # ===============================
 app.mount("/", WSGIMiddleware(flask_app))
+
+for route in app.routes:
+    try:
+        print("RUTA FASTAPI:", route.path)
+    except Exception:
+        pass
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
