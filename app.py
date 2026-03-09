@@ -37,6 +37,12 @@ app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev_secret_change_me")
 # ✅ password admin (mejor en variable de entorno)
 ADMIN_PASSWORD = os.environ.get("SPECTRA_ADMIN_PASSWORD", "admin123")
 
+# ✅ link de exportación del Google Sheet
+GOOGLE_SHEET_EXPORT_URL = os.environ.get(
+    "GOOGLE_SHEET_EXPORT_URL",
+    "https://docs.google.com/spreadsheets/d/1qn03Xku9pT1_Uw-74fDAutxe1kbjcEJzyPnNlHIpOpE/export?format=xlsx"
+).strip()
+
 # =========================
 # 🔧 Helpers URL (next safe)
 # =========================
@@ -159,6 +165,11 @@ def _normalize_lab_ok_response(data):
 def _post_n8n_json(url, payload=None, timeout=30):
     payload = payload or {}
     r = requests.post(url, json=payload, timeout=timeout)
+    data = _response_json_or_text(r)
+    return r, data
+
+def _get_n8n_json(url, timeout=30):
+    r = requests.get(url, timeout=timeout)
     data = _response_json_or_text(r)
     return r, data
 
@@ -414,7 +425,7 @@ def api_lab_inventario_publico():
     Usa el mismo /listar pero lo deja visible para student/admin.
     """
     try:
-        r, data = _post_n8n_json(N8N_LISTAR, payload={}, timeout=30)
+        r, data = _get_n8n_json(N8N_LISTAR, timeout=30)
 
         if not r.ok:
             return jsonify({
@@ -434,7 +445,7 @@ def api_lab_inventario_publico():
 @require_role("admin")
 def api_lab_listar():
     try:
-        r, data = _post_n8n_json(N8N_LISTAR, payload={}, timeout=30)
+        r, data = _get_n8n_json(N8N_LISTAR, timeout=30)
 
         if not r.ok:
             return jsonify({
@@ -443,14 +454,30 @@ def api_lab_listar():
                 "raw": data
             }), r.status_code
 
-        # ✅ esto es lo importante para tu registro.html
-        # siempre devuelve { ok:true, items:[...] }
         return jsonify(_normalize_lab_ok_response(data)), 200
 
     except requests.exceptions.Timeout:
         return jsonify({"ok": False, "error": "Timeout llamando a n8n /listar"}), 504
     except Exception as e:
         return jsonify({"ok": False, "error": f"api_lab_listar error: {str(e)}"}), 500
+
+@app.route("/api/lab/descargar", methods=["GET"])
+@require_role("admin")
+def api_lab_descargar():
+    try:
+        if not GOOGLE_SHEET_EXPORT_URL:
+            return jsonify({
+                "ok": False,
+                "error": "Falta configurar GOOGLE_SHEET_EXPORT_URL"
+            }), 500
+
+        return redirect(GOOGLE_SHEET_EXPORT_URL, code=302)
+
+    except Exception as e:
+        return jsonify({
+            "ok": False,
+            "error": f"api_lab_descargar error: {str(e)}"
+        }), 500
 
 @app.route("/api/lab/prestar", methods=["POST"])
 @require_role("admin", "student")
@@ -527,7 +554,6 @@ def api_lab_devolver():
                 "raw": resp_data
             }), r.status_code
 
-        # ✅ respuesta consistente para tu registro.html
         msg = (
             resp_data.get("msg")
             or resp_data.get("message")
@@ -814,7 +840,11 @@ def talk_proxy():
         try:
             payload = r.json()
         except Exception:
-            return jsonify({"error": "Respuesta no-JSON desde FastAPI", "raw": r.text}), r.status_code
+            return jsonify({
+                "error": "Respuesta no-JSON desde FastAPI",
+                "status_code": r.status_code,
+                "raw": (r.text or "")[:2000]
+            }), r.status_code
 
         transcript = (
             payload.get("transcript")
@@ -822,6 +852,7 @@ def talk_proxy():
             or payload.get("user_text")
             or ""
         )
+
         if transcript and _looks_like_reminder(transcript):
             due = _parse_due_from_text(transcript)
             what = _extract_reminder_text(transcript) or transcript
@@ -830,9 +861,13 @@ def talk_proxy():
         return jsonify(payload), r.status_code
 
     except requests.exceptions.Timeout:
-        return jsonify({"error": "Timeout: /talk tardó demasiado (Whisper/Tavily). Intenta de nuevo."}), 504
+        return jsonify({
+            "error": "Timeout: /talk tardó demasiado (Whisper/Tavily). Intenta de nuevo."
+        }), 504
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({
+            "error": str(e)
+        }), 500
 
 # =========================
 # ✅ Proxy texto → FastAPI /ask (con chat_id)
