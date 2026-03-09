@@ -566,7 +566,7 @@ setInterval(() => { if (ws.readyState === 1) ws.send("ping"); }, 25000);
 
 @app.get("/app-spectra")
 def app_spectra_page():
-    file_path = os.path.join(APP_DIR, "templates", "index.html")
+    file_path = os.path.join(APP_DIR, "index.html")
 
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail=f"No existe: {file_path}")
