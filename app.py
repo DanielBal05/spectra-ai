@@ -41,8 +41,6 @@ ADMIN_PASSWORD = os.environ.get("SPECTRA_ADMIN_PASSWORD", "admin123")
 # 🔧 Helpers URL (next safe)
 # =========================
 def _full_path_with_query():
-    # Ej: "/registro-estudiante?equipo=Osciloscopio"
-    # request.full_path a veces termina con "?"
     p = request.full_path or request.path or "/"
     return p[:-1] if p.endswith("?") else p
 
@@ -71,42 +69,98 @@ def require_role(*roles):
         def wrapper(*args, **kwargs):
             role = session.get("role")
             if role not in roles:
-                # ✅ guardar path completo con query (para ?equipo=... y filtros)
                 next_url = _full_path_with_query()
                 return redirect(f"/login?next={next_url}")
             return fn(*args, **kwargs)
         return wrapper
     return deco
 
-
 @app.route("/routes")
 def routes():
     return jsonify(sorted([str(r) for r in app.url_map.iter_rules()])), 200
 
-
 # 🔧 CONFIG
-FASTAPI_BASE = os.environ.get("FASTAPI_BASE", "https://spectra-ai-axcs.onrender.com")  # si FastAPI está en otra PC/IP, cambia esto
+FASTAPI_BASE = os.environ.get("FASTAPI_BASE", "https://spectra-ai-axcs.onrender.com")
 
 FASTAPI_TALK = f"{FASTAPI_BASE}/talk"
 FASTAPI_ASK = f"{FASTAPI_BASE}/ask"
 FASTAPI_FB_ULTIMA = f"{FASTAPI_BASE}/firebase/ultima"
 FASTAPI_FB_SENSORES = f"{FASTAPI_BASE}/firebase/sensores"
 FASTAPI_SPEAKER = f"{FASTAPI_BASE}/speaker"
-FASTAPI_ROOT = f"{FASTAPI_BASE}/"  # para health check
+FASTAPI_ROOT = f"{FASTAPI_BASE}/"
 
 # ✅ Multi-chat / memoria en FastAPI
-FASTAPI_CHAT = f"{FASTAPI_BASE}/chat"           # compat
-FASTAPI_CHATS = f"{FASTAPI_BASE}/chats"         # lista/crear
-FASTAPI_TASKS = f"{FASTAPI_BASE}/tasks"         # recordatorios reales (FastAPI)
+FASTAPI_CHAT = f"{FASTAPI_BASE}/chat"
+FASTAPI_CHATS = f"{FASTAPI_BASE}/chats"
+FASTAPI_TASKS = f"{FASTAPI_BASE}/tasks"
 
 # =========================
-# ✅ ✅ CONFIG n8n (LAB)
+# ✅ CONFIG n8n (LAB)
 # =========================
-N8N_BASE = "https://n8n-lab-automation.onrender.com"
+N8N_BASE = os.environ.get("N8N_BASE", "https://n8n-lab-automation.onrender.com").rstrip("/")
 
-N8N_PRESTAR  = f"{N8N_BASE}/webhook/lab/prestamo"
-N8N_DEVOLVER = f"{N8N_BASE}/webhook/lab/devolver"
-N8N_LISTAR   = f"{N8N_BASE}/webhook/lab/listar"
+# OJO:
+# - Si en n8n tu webhook real es /prestamo, deja prestamo
+# - Si fuera /prestar, cambia aquí
+N8N_PRESTAR = os.environ.get("N8N_PRESTAR", f"{N8N_BASE}/webhook/lab/prestamo")
+N8N_DEVOLVER = os.environ.get("N8N_DEVOLVER", f"{N8N_BASE}/webhook/lab/devolver")
+N8N_LISTAR = os.environ.get("N8N_LISTAR", f"{N8N_BASE}/webhook/lab/listar")
+
+# =========================
+# ✅ Helpers n8n LAB
+# =========================
+def _response_json_or_text(resp):
+    try:
+        return resp.json()
+    except Exception:
+        return {"raw": (resp.text or "")[:2000]}
+
+def _extract_items_from_n8n_payload(data):
+    """
+    Convierte distintas respuestas de n8n a una lista uniforme.
+    Soporta:
+    - [ ... ]
+    - {"items":[...]}
+    - {"data":[...]}
+    - {"rows":[...]}
+    - {"prestamos":[...]}
+    - {"ok":true,"data":{"items":[...]}}
+    """
+    if isinstance(data, list):
+        return data
+
+    if not isinstance(data, dict):
+        return []
+
+    direct_keys = ["items", "data", "rows", "prestamos"]
+    for key in direct_keys:
+        val = data.get(key)
+        if isinstance(val, list):
+            return val
+
+    nested_data = data.get("data")
+    if isinstance(nested_data, dict):
+        for key in direct_keys:
+            val = nested_data.get(key)
+            if isinstance(val, list):
+                return val
+
+    return []
+
+def _normalize_lab_ok_response(data):
+    items = _extract_items_from_n8n_payload(data)
+    return {
+        "ok": True,
+        "items": items,
+        "count": len(items),
+        "raw": data
+    }
+
+def _post_n8n_json(url, payload=None, timeout=30):
+    payload = payload or {}
+    r = requests.post(url, json=payload, timeout=timeout)
+    data = _response_json_or_text(r)
+    return r, data
 
 # =========================
 # ✅ (LEGACY) Recordatorios Flask (DB que lee tu pestaña /reminders)
@@ -203,7 +257,6 @@ def _looks_like_reminder(text: str) -> bool:
     t = _normalize(text)
     return ("recuerdame" in t) or ("pon un recordatorio" in t) or ("ponme un recordatorio" in t) or ("alertame" in t) or ("alarma" in t)
 
-
 # =========================
 # ✅ Notificaciones (estado simple para el botón 🔔)
 # =========================
@@ -249,7 +302,6 @@ def notifications_test():
     state = _load_notif_state()
     return jsonify({"ok": True, "message": "Notificación de prueba (backend) ✅", "state": state}), 200
 
-
 # =========================
 # ✅ LOGIN / ROLES
 # =========================
@@ -270,7 +322,6 @@ def login_page():
 
     return render_template("login.html", next=next_url)
 
-# ✅✅ DEBUG: ver error real del login en texto
 @app.get("/debug/login")
 def debug_login():
     try:
@@ -321,7 +372,6 @@ def whoami():
         "banner_id": session.get("banner_id"),
     }), 200
 
-
 # =========================
 # ✅ Páginas (protegidas)
 # =========================
@@ -335,19 +385,16 @@ def index():
 def reminders_page():
     return render_template("reminders.html")
 
-# ✅ Admin: registro completo (lista + devolver)
 @app.route("/registro")
 @require_role("admin")
 def registro_admin_page():
     return render_template("registro.html")
 
-# ✅ Student: inventario (para elegir equipo y mandar a registro)
 @app.route("/inventario-estudiante")
 @require_role("student")
 def inventario_estudiante_page():
     return render_template("inventario_estudiante.html")
 
-# ✅ Student: solo registrar (sin lista, sin devolver)
 @app.route("/registro-estudiante")
 @require_role("student")
 def registro_estudiante_page():
@@ -357,40 +404,49 @@ def registro_estudiante_page():
         banner_id=session.get("banner_id", ""),
     )
 
-
 # =========================
 # ✅ API LAB → n8n
 # =========================
-
-# ✅ Inventario público (student/admin) para inventario_estudiante.html
 @app.route("/api/lab/inventario", methods=["GET"])
 @require_role("admin", "student")
 def api_lab_inventario_publico():
     """
-    Llama al mismo webhook /listar en n8n, pero permite student también.
-    Ideal para construir pantalla inventario con botones Solicitar.
+    Usa el mismo /listar pero lo deja visible para student/admin.
     """
     try:
-        r = requests.get(N8N_LISTAR, timeout=30)
-        try:
-            return jsonify(r.json()), r.status_code
-        except Exception:
-            return jsonify({"ok": False, "error": "n8n devolvió no-JSON", "raw": (r.text or "")[:1500]}), 502
+        r, data = _post_n8n_json(N8N_LISTAR, payload={}, timeout=30)
+
+        if not r.ok:
+            return jsonify({
+                "ok": False,
+                "error": data.get("error") or data.get("message") or "Error en n8n /listar",
+                "raw": data
+            }), r.status_code
+
+        return jsonify(_normalize_lab_ok_response(data)), 200
+
     except requests.exceptions.Timeout:
         return jsonify({"ok": False, "error": "Timeout llamando a n8n /listar"}), 504
     except Exception as e:
         return jsonify({"ok": False, "error": f"api_lab_inventario error: {str(e)}"}), 500
 
-
 @app.route("/api/lab/listar", methods=["GET"])
-@require_role("admin")  # 👈 solo admin puede listar (tu endpoint original)
+@require_role("admin")
 def api_lab_listar():
     try:
-        r = requests.get(N8N_LISTAR, timeout=30)
-        try:
-            return jsonify(r.json()), r.status_code
-        except Exception:
-            return jsonify({"ok": False, "error": "n8n devolvió no-JSON", "raw": (r.text or "")[:1500]}), 502
+        r, data = _post_n8n_json(N8N_LISTAR, payload={}, timeout=30)
+
+        if not r.ok:
+            return jsonify({
+                "ok": False,
+                "error": data.get("error") or data.get("message") or "Error en n8n /listar",
+                "raw": data
+            }), r.status_code
+
+        # ✅ esto es lo importante para tu registro.html
+        # siempre devuelve { ok:true, items:[...] }
+        return jsonify(_normalize_lab_ok_response(data)), 200
+
     except requests.exceptions.Timeout:
         return jsonify({"ok": False, "error": "Timeout llamando a n8n /listar"}), 504
     except Exception as e:
@@ -402,7 +458,6 @@ def api_lab_prestar():
     try:
         data = request.get_json(silent=True) or {}
 
-        # 👇 Si es estudiante, fuerza nombre/banner desde sesión
         role = session.get("role")
         if role == "student":
             nombre = (session.get("student_name") or "").strip()
@@ -429,17 +484,66 @@ def api_lab_prestar():
         if not equipo and not extras:
             return jsonify({"ok": False, "error": "Debes enviar equipo o extras"}), 400
 
-        r = requests.post(N8N_PRESTAR, json=payload, timeout=30)
-        try:
-            return jsonify(r.json()), r.status_code
-        except Exception:
-            return jsonify({"ok": False, "error": "n8n devolvió no-JSON", "raw": (r.text or "")[:1500]}), 502
+        r, resp_data = _post_n8n_json(N8N_PRESTAR, payload=payload, timeout=30)
+
+        if not r.ok:
+            return jsonify({
+                "ok": False,
+                "error": resp_data.get("error") or resp_data.get("message") or "Error en n8n /prestamo",
+                "raw": resp_data
+            }), r.status_code
+
+        return jsonify(resp_data), r.status_code
 
     except requests.exceptions.Timeout:
         return jsonify({"ok": False, "error": "Timeout llamando a n8n /prestamo"}), 504
     except Exception as e:
         return jsonify({"ok": False, "error": f"api_lab_prestar error: {str(e)}"}), 500
 
+@app.route("/api/lab/devolver", methods=["POST"])
+@require_role("admin")
+def api_lab_devolver():
+    try:
+        data = request.get_json(silent=True) or {}
+
+        item_id = (data.get("id") or data.get("ID") or data.get("codigo") or "").strip()
+        row_number = data.get("row_number") or data.get("rowNumber")
+
+        if not item_id and not row_number:
+            return jsonify({"ok": False, "error": "Falta id o row_number para devolver"}), 400
+
+        payload = {}
+        if item_id:
+            payload["id"] = item_id
+        if row_number:
+            payload["row_number"] = row_number
+
+        r, resp_data = _post_n8n_json(N8N_DEVOLVER, payload=payload, timeout=30)
+
+        if not r.ok:
+            return jsonify({
+                "ok": False,
+                "error": resp_data.get("error") or resp_data.get("message") or "Error en n8n /devolver",
+                "raw": resp_data
+            }), r.status_code
+
+        # ✅ respuesta consistente para tu registro.html
+        msg = (
+            resp_data.get("msg")
+            or resp_data.get("message")
+            or "Devolución registrada ✅"
+        )
+
+        return jsonify({
+            "ok": True,
+            "msg": msg,
+            "data": resp_data
+        }), 200
+
+    except requests.exceptions.Timeout:
+        return jsonify({"ok": False, "error": "Timeout llamando a n8n /devolver"}), 504
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"api_lab_devolver error: {str(e)}"}), 500
 
 # =========================
 # ✅ API Recordatorios (LEGACY - Flask DB)
@@ -501,7 +605,6 @@ def api_reminders_delete(rid):
     _save_reminders(new_items)
     return jsonify({"ok": True}), 200
 
-
 # =========================
 # ✅ PROXY Multi-chat (FastAPI /chats)
 # =========================
@@ -543,7 +646,7 @@ def chats_proxy_item(chat_id):
             data = request.get_json(silent=True) or {}
             r = requests.patch(f"{FASTAPI_CHATS}/{chat_id}", json=data, timeout=30)
 
-        else:  # DELETE
+        else:
             r = requests.delete(f"{FASTAPI_CHATS}/{chat_id}", timeout=30)
 
         try:
@@ -565,7 +668,6 @@ def chats_alias():
 @require_role("admin")
 def chats_alias_item(chat_id):
     return chats_proxy_item(chat_id)
-
 
 # =========================
 # ✅ PROXY TAREAS / RECORDATORIOS reales (FastAPI /tasks)
@@ -613,7 +715,6 @@ def tasks_alias():
 @require_role("admin")
 def tasks_alias_item(task_id):
     return tasks_proxy_delete(task_id)
-
 
 # =========================
 # ✅ PROXY MEMORIA (FastAPI /chat) (compat antiguo)
@@ -672,7 +773,6 @@ def chat_clear_proxy():
     except Exception as e:
         return jsonify({"ok": False, "error": f"chat-clear proxy error: {str(e)}"}), 500
 
-
 # =========================
 # ✅ Health check
 # =========================
@@ -689,7 +789,6 @@ def health():
             "error": str(e),
             "hint": "Asegúrate de tener corriendo: uvicorn main:app --reload --host 0.0.0.0 --port 8000"
         }), 500
-
 
 # =========================
 # ✅ Proxy audio → FastAPI /talk (con chat_id)
@@ -735,7 +834,6 @@ def talk_proxy():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-
 # =========================
 # ✅ Proxy texto → FastAPI /ask (con chat_id)
 # =========================
@@ -771,7 +869,6 @@ def ask_proxy():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-
 # =========================
 # Proxy Firebase ultima
 # =========================
@@ -783,7 +880,6 @@ def firebase_ultima_proxy():
         return jsonify(r.json()), r.status_code
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
 
 # =========================
 # Proxy Firebase sensores (crudo)
@@ -797,7 +893,6 @@ def firebase_sensores_proxy():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-
 # =========================
 # Abrir el Speaker real (FastAPI)
 # =========================
@@ -805,7 +900,6 @@ def firebase_sensores_proxy():
 @require_role("admin")
 def speaker_redirect():
     return redirect(FASTAPI_SPEAKER, code=302)
-
 
 # =========================
 # (Opcional) redirect a la app futurista de FastAPI
