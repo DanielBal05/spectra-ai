@@ -1308,7 +1308,7 @@ def app_spectra_page():
 
         <div class="view" id="viewRegistro">
           <div class="registroWrap">
-            <iframe class="registroFrame" src="/registro"></iframe>
+            <iframe class="registroFrame" src="/registro-embed"></iframe>
           </div>
         </div>
       </div>
@@ -2185,8 +2185,8 @@ def boot_screen():
         <div class="spinner"></div>
         <h2>Iniciando Spectra AI</h2>
         <p>
-          Espera un momento mientras despertamos todos los servicios
-          para que el login y las funciones estén listas.
+          Espera un momento mientras despertamos todos los servicios,
+          esto puede tardar de 2 a 4 minutos.
         </p>
         <div id="state">Verificando servicios...</div>
       </div>
