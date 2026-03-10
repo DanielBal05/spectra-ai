@@ -5,6 +5,7 @@ from fastapi.middleware.wsgi import WSGIMiddleware
 
 import sys
 import os
+import google.generativeai as genai
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 APP_DIR = r"C:\Users\DANIEL\Desktop\APP"
@@ -176,6 +177,28 @@ def tavily_search(query: str, max_results: int = 5) -> dict:
     except Exception as e:
         return {"ok": False, "error": str(e)}
 
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
+
+def ask_gemini(prompt: str) -> str:
+    if not GEMINI_API_KEY:
+        raise Exception("Falta GEMINI_API_KEY")
+
+    try:
+        genai.configure(api_key=GEMINI_API_KEY)
+
+        model = genai.GenerativeModel("gemini-1.5-flash")
+
+        response = model.generate_content(prompt)
+
+        if response and response.text:
+            return response.text.strip()
+
+        return "Spectra: No pude generar una respuesta."
+
+    except Exception as e:
+        print("❌ Error Gemini:", e)
+        raise
+    
 # ====================
 # 📅 n8n Webhook (Google Calendar)
 # ====================
@@ -3030,40 +3053,40 @@ async def talk(audio: UploadFile = File(...), chat_id: str = "default"):
         # ============================================================
         # ✅ 2) RECORDATORIO
         # ============================================================
-        rem = parse_reminder(transcript)
-        if rem:
-            minutes, task_text = rem
+        #rem = parse_reminder(transcript)
+ #       if rem:
+  #          minutes, task_text = rem
+#
+ #           task = create_task_internal(
+  #              task_text,
+   ##             minutes,
+     #           chat_id=chat_id,
+      #          create_calendar_event=True,
+       #         calendar_title=f"{task_text}"
+        #    )
 
-            task = create_task_internal(
-                task_text,
-                minutes,
-                chat_id=chat_id,
-                create_calendar_event=True,
-                calendar_title=f"{task_text}"
-            )
+        #    answer = compact_answer(
+       #         f"Listo, Daniel. Te lo recuerdo en {minutes} minutos y también lo agendé en tu Google Calendar: {task_text}.",
+        #        MAX_CHARS_SHORT
+         #   )
 
-            answer = compact_answer(
-                f"Listo, Daniel. Te lo recuerdo en {minutes} minutos y también lo agendé en tu Google Calendar: {task_text}.",
-                MAX_CHARS_SHORT
-            )
+        #    save_chat_event(
+         #       "talk_reminder",
+          #      user_text=transcript,
+           #     assistant_text=answer,
+            #    meta={"created_task": task},
+             #   chat_id=chat_id
+            #)
 
-            save_chat_event(
-                "talk_reminder",
-                user_text=transcript,
-                assistant_text=answer,
-                meta={"created_task": task},
-                chat_id=chat_id
-            )
+           # await ws_broadcast({"type": "talk", "transcript": transcript, "answer": answer, "chat_id": chat_id})
 
-            await ws_broadcast({"type": "talk", "transcript": transcript, "answer": answer, "chat_id": chat_id})
-
-            return {
-                "ok": True,
-                "transcript": transcript,
-                "answer": answer,
-                "created_task": task,
-                "chat_id": chat_id
-            }
+          #  return {
+         #       "ok": True,
+          #      "transcript": transcript,
+           #     "answer": answer,
+            #    "created_task": task,
+             #   "chat_id": chat_id
+           # }
 
         # ============================================================
         # ✅ 3) FLUJO NORMAL OLLAMA
@@ -3075,7 +3098,7 @@ async def talk(audio: UploadFile = File(...), chat_id: str = "default"):
         prompt = f"{system_style}\n\nUsuario: {transcript}\nAsistente:"
 
         try:
-            raw_answer = ask_ollama(prompt)
+            raw_answer = ask_gemini(prompt)
             answer = compact_answer(raw_answer, max_chars=max_chars)
         except:
             answer = "Daniel, no pude conectar con Ollama."
