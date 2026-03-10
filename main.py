@@ -149,6 +149,32 @@ MODEL = os.getenv("OLLAMA_MODEL", "phi3:mini").strip()
 # ====================
 TAVILY_API_KEY = os.getenv("TAVILY_API_KEY", "").strip()
 TAVILY_SEARCH_URL = "https://api.tavily.com/search"
+def tavily_search(query: str, max_results: int = 5) -> dict:
+    if not TAVILY_API_KEY:
+        return {"ok": False, "error": "Falta TAVILY_API_KEY"}
+
+    try:
+        payload = {
+            "api_key": TAVILY_API_KEY,
+            "query": query,
+            "search_depth": "advanced",
+            "max_results": max_results,
+            "include_answer": True,
+            "include_raw_content": False,
+            "include_images": False,
+        }
+
+        r = requests.post(TAVILY_SEARCH_URL, json=payload, timeout=25)
+        r.raise_for_status()
+
+        data = r.json()
+        return {
+            "ok": True,
+            "answer": data.get("answer", ""),
+            "results": data.get("results", []) or []
+        }
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
 
 # ====================
 # 📅 n8n Webhook (Google Calendar)
@@ -2427,7 +2453,12 @@ def needs_sensors_context(text: str) -> bool:
 
 def needs_online(text: str) -> bool:
     t = (text or "").lower()
-    keys = ["internet", "web", "busca", "buscar", "actual", "actualizado", "última", "ultima", "noticia", "noticias"]
+    keys = [
+        "internet", "web", "busca", "buscar", "buscame", "búscame",
+        "actual", "actualizado", "última", "ultima", "noticia", "noticias",
+        "google", "investiga", "averigua", "qué está pasando", "que esta pasando",
+        "hoy", "reciente", "recientes", "quien", "quién", "dónde", "donde", "cuándo", "cuando","que"
+    ]
     return any(k in t for k in keys)
 
 def compute_analytics_obj(question: str):
@@ -2720,18 +2751,23 @@ def ask(req: AskReq):
             analytics_obj, sensores_ctx = compute_analytics_obj(req.question)
 
         web_ctx = ""
+        tav_answer = ""
         if needs_online(req.question):
             tav = tavily_search(req.question, max_results=5)
             if tav.get("ok"):
+                tav_answer = (tav.get("answer") or "").strip()
                 web_ctx = format_tavily_context(tav)
+
+                if tav_answer:
+                    web_ctx = f"Respuesta breve Tavily:\n{tav_answer}\n\nFuentes:\n{web_ctx}"
             else:
                 web_ctx = f"No se pudo buscar en internet: {tav.get('error','')}"
 
         prompt = (
             f"{system_style}\n\n"
             + (f"{sensores_ctx}\n\n" if sensores_ctx else "")
-            + f"Evidencia web (si aplica):\n{web_ctx}\n\n"
-            f"Usuario: {req.question}\n"
+            + (f"Contexto web actualizado:\n{web_ctx}\n\n" if web_ctx else "")
+            + f"Usuario: {req.question}\n"
             f"Asistente:"
         )
 
@@ -2744,6 +2780,16 @@ def ask(req: AskReq):
             if analytics_obj:
                 answer = compact_answer(
                     build_answer_from_analytics_text(analytics_obj, detailed=detailed),
+                    max_chars=max_chars
+                )
+            elif tav_answer:
+                answer = compact_answer(
+                    f"Según la búsqueda web: {tav_answer}",
+                    max_chars=max_chars
+                )
+            elif web_ctx:
+                answer = compact_answer(
+                    f"Encontré contexto web, pero no pude procesarlo con Ollama.\n\n{web_ctx}",
                     max_chars=max_chars
                 )
             else:
@@ -2760,6 +2806,7 @@ def ask(req: AskReq):
                 "used_web": bool(web_ctx),
                 "used_sensors": bool(sensores_ctx),
                 "detailed": detailed,
+                "tavily_answer": tav_answer,
             },
             chat_id=chat_id
         )
@@ -2771,7 +2818,8 @@ def ask(req: AskReq):
             "used_sensors": bool(sensores_ctx),
             "analytics": analytics_obj,
             "detailed": detailed,
-            "chat_id": chat_id
+            "chat_id": chat_id,
+            "tavily_answer": tav_answer,
         }
 
     except Exception as e:
@@ -3083,7 +3131,26 @@ def ask_proxy(req: AskReq):
 
 @app.post("/talk-proxy")
 async def talk_proxy(audio: UploadFile = File(...), chat_id: str = "default"):
-    return await talk(audio=audio, chat_id=chat_id)
+    try:
+        return await talk(audio=audio, chat_id=chat_id)
+    except HTTPException as e:
+        return {
+            "ok": False,
+            "error": str(e.detail),
+            "transcript": "",
+            "answer": f"Error: {e.detail}",
+            "chat_id": chat_id
+        }
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return {
+            "ok": False,
+            "error": str(e),
+            "transcript": "",
+            "answer": f"Error interno: {e}",
+            "chat_id": chat_id
+        }
 
 @app.get("/firebase/sensores-proxy")
 def sensores_proxy():
