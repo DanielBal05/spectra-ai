@@ -583,1153 +583,339 @@ setInterval(() => { if (ws.readyState === 1) ws.send("ping"); }, 25000);
 @app.get("/app-spectra", response_class=HTMLResponse)
 def app_spectra_page():
     return r"""
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Spectra AI - Interfaz de Voz</title>
-  <style>
-    :root{
-      --bg:#030718;
-      --panel:rgba(7,14,34,.78);
-      --panel2:rgba(10,18,42,.92);
-      --line:rgba(130,170,255,.12);
-      --text:#f4f7ff;
-      --muted:rgba(216,226,255,.68);
-      --muted2:rgba(216,226,255,.5);
-      --cyan:#27d6ff;
-      --blue:#5aa3ff;
-      --purple:#9f5cff;
-      --pink:#ff4fd8;
-      --green:#36e07d;
-      --orange:#ffb14a;
-      --radius-xl:26px;
-      --radius-lg:20px;
-      --radius-md:16px;
-      --radius-sm:12px;
-      --shadow:0 20px 70px rgba(0,0,0,.45);
-    }
-
-    *{ box-sizing:border-box; }
-    html,body{ height:100%; }
-    body{
-      margin:0;
-      color:var(--text);
-      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      background:
-        radial-gradient(900px 500px at 10% 0%, rgba(39,214,255,.12), transparent 55%),
-        radial-gradient(900px 600px at 100% 0%, rgba(159,92,255,.10), transparent 50%),
-        linear-gradient(180deg, #020615 0%, #030816 100%);
-      overflow:hidden;
-    }
-
-    body::before{
-      content:"";
-      position:fixed;
-      inset:0;
-      background:
-        linear-gradient(to right, rgba(68,111,255,.02) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(68,111,255,.015) 1px, transparent 1px);
-      background-size:56px 56px;
-      mask-image: radial-gradient(circle at center, rgba(0,0,0,.96), transparent 92%);
-      pointer-events:none;
-    }
-
-    .shell{
-      width:min(100%, 1600px);
-      height:100vh;
-      margin:0 auto;
-      padding:20px 22px 18px;
-    }
-
-    .frame{
-      height:100%;
-      border-radius:28px;
-      border:1px solid rgba(120,155,255,.13);
-      background:linear-gradient(180deg, rgba(4,10,26,.88), rgba(2,7,20,.94));
-      box-shadow:inset 0 0 0 1px rgba(255,255,255,.02), var(--shadow);
-      padding:16px 18px;
-      overflow:hidden;
-    }
-
-    .top{
-      display:flex;
-      justify-content:space-between;
-      align-items:flex-start;
-      gap:20px;
-      padding:2px 4px 12px;
-      border-bottom:1px solid rgba(255,255,255,.05);
-    }
-
-    .brand{
-      display:flex;
-      align-items:flex-start;
-      gap:14px;
-    }
-
-    .orb{
-      width:50px;
-      height:50px;
-      border-radius:50%;
-      background:
-        radial-gradient(circle at 35% 35%, rgba(255,255,255,.7), rgba(255,255,255,.12) 18%, transparent 22%),
-        radial-gradient(circle at 35% 35%, #7df0ff 0%, #36d8ff 30%, #1593ff 62%, #0a4db8 100%);
-      box-shadow:0 0 12px rgba(39,214,255,.45), 0 0 28px rgba(39,214,255,.22), inset 0 0 12px rgba(255,255,255,.28);
-      border:1px solid rgba(255,255,255,.16);
-      flex:0 0 50px;
-    }
-
-    .brandText .kicker{
-      font-size:12px;
-      letter-spacing:.34em;
-      text-transform:uppercase;
-      color:#4be4ff;
-      margin-bottom:2px;
-    }
-
-    .brandText .title{
-      font-size:22px;
-      line-height:1.05;
-      letter-spacing:.12em;
-      font-weight:800;
-      text-transform:uppercase;
-      color:white;
-    }
-
-    .online{
-      display:flex;
-      align-items:center;
-      gap:10px;
-      padding:10px 16px;
-      border-radius:999px;
-      border:1px solid rgba(255,255,255,.09);
-      background:rgba(255,255,255,.02);
-      white-space:nowrap;
-      margin-top:2px;
-    }
-
-    .dot{
-      width:8px;
-      height:8px;
-      border-radius:50%;
-      background:var(--green);
-      box-shadow:0 0 10px rgba(54,224,125,.8);
-      flex:0 0 8px;
-    }
-
-    .online .strong{
-      font-size:13px;
-      letter-spacing:.25em;
-      text-transform:uppercase;
-      font-weight:800;
-    }
-
-    .online .sub{
-      font-size:13px;
-      color:var(--muted);
-    }
-
-    .toolbar{
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      gap:18px;
-      padding:14px 2px 10px;
-    }
-
-    .toolbarLeft, .toolbarRight{
-      display:flex;
-      align-items:center;
-      gap:10px;
-      flex-wrap:wrap;
-    }
-
-    .pill, .iconBtn{
-      border:none;
-      color:var(--text);
-      cursor:pointer;
-      border-radius:999px;
-      padding:12px 18px;
-      background:rgba(255,255,255,.035);
-      border:1px solid rgba(255,255,255,.08);
-      transition:.18s ease;
-      font-weight:700;
-      letter-spacing:.08em;
-      text-transform:uppercase;
-      font-size:13px;
-      text-decoration:none;
-    }
-
-    .pill:hover, .iconBtn:hover{
-      transform:translateY(-1px);
-      border-color:rgba(120,170,255,.2);
-      background:rgba(255,255,255,.05);
-    }
-
-    .pill.active{
-      background:linear-gradient(180deg, rgba(0,198,255,.12), rgba(0,198,255,.06));
-      border-color:rgba(39,214,255,.3);
-    }
-
-    .pill .accent{ color:var(--orange); margin-right:8px; }
-    .pillNew .plus{ color:#a976ff; font-size:20px; line-height:0; vertical-align:middle; margin-right:8px; }
-
-    .main{
-      height:calc(100% - 126px);
-      padding-top:2px;
-    }
-
-    .view{ height:100%; display:none; }
-    .view.active{ display:block; }
-
-    .coreGrid{
-      height:100%;
-      display:grid;
-      grid-template-columns:1.42fr .95fr;
-      gap:18px;
-    }
-
-    .panel{
-      min-height:0;
-      background:linear-gradient(180deg, rgba(5,11,28,.58), rgba(5,11,28,.4));
-      border:1px solid rgba(124,157,255,.10);
-      border-radius:24px;
-      box-shadow:inset 0 0 0 1px rgba(255,255,255,.02);
-      overflow:hidden;
-    }
-
-    .leftPanel, .rightPanel, .remPanel{
-      padding:16px 16px 14px;
-      display:flex;
-      flex-direction:column;
-      min-height:0;
-      height:100%;
-    }
-
-    .sectionHead{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:16px;
-      margin-bottom:12px;
-    }
-
-    .sectionTitle{
-      font-size:15px;
-      font-weight:800;
-      letter-spacing:.22em;
-      text-transform:uppercase;
-      color:#dfe9ff;
-    }
-
-    .sectionMeta{
-      font-size:14px;
-      color:var(--muted);
-    }
-
-    .chatPanel{
-      background:rgba(255,255,255,.02);
-      border:1px solid rgba(255,255,255,.06);
-      border-radius:20px;
-      padding:14px 14px 12px;
-      min-height:0;
-      display:flex;
-      flex-direction:column;
-      flex:1;
-    }
-
-    .chatHead{
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      gap:12px;
-      margin-bottom:10px;
-    }
-
-    .miniLabel{ font-size:14px; color:#dce8ff; }
-
-    .chatBadge{
-      border-radius:999px;
-      padding:8px 14px;
-      background:rgba(130,160,255,.06);
-      border:1px solid rgba(130,160,255,.16);
-      color:#eef4ff;
-      font-size:14px;
-      white-space:nowrap;
-    }
-
-    .chatList, .messagesBox, .tasksBox{
-      overflow:auto;
-    }
-
-    .chatList{
-      display:flex;
-      flex-direction:column;
-      gap:10px;
-      max-height:280px;
-      padding-right:4px;
-    }
-
-    .chatRow{
-      display:grid;
-      grid-template-columns:1fr auto;
-      gap:12px;
-      align-items:center;
-      padding:14px;
-      border-radius:16px;
-      border:1px solid rgba(255,255,255,.08);
-      background:rgba(255,255,255,.02);
-      cursor:pointer;
-      transition:.16s ease;
-    }
-
-    .chatRow:hover{ border-color:rgba(39,214,255,.22); background:rgba(255,255,255,.03); }
-    .chatRow.active{
-      background:linear-gradient(180deg, rgba(0,198,255,.13), rgba(0,198,255,.07));
-      border-color:rgba(39,214,255,.35);
-    }
-
-    .chatTitle{
-      font-size:15px;
-      font-weight:800;
-      color:#f2f7ff;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-      margin-bottom:4px;
-    }
-
-    .chatMeta{ font-size:13px; color:var(--muted2); }
-
-    .deleteChat{
-      width:34px;
-      height:34px;
-      border-radius:12px;
-      border:1px solid rgba(255,110,160,.28);
-      background:rgba(255,85,136,.08);
-      color:#ffd6e7;
-      cursor:pointer;
-      font-size:15px;
-    }
-
-    .messagesWrap{
-      margin-top:12px;
-      min-height:0;
-      flex:1;
-      display:flex;
-      flex-direction:column;
-    }
-
-    .messagesBox, .tasksBox{
-      flex:1;
-      min-height:72px;
-      border-radius:16px;
-      border:1px solid rgba(255,255,255,.06);
-      background:rgba(255,255,255,.015);
-      padding:12px;
-      display:flex;
-      flex-direction:column;
-      gap:10px;
-    }
-
-    .msg, .taskItem{
-      border-radius:14px;
-      border:1px solid rgba(255,255,255,.07);
-      background:rgba(255,255,255,.02);
-      padding:10px 12px;
-    }
-
-    .msg .meta, .taskMeta{
-      font-size:12px;
-      color:var(--muted2);
-      margin-bottom:6px;
-    }
-
-    .msg .line, .taskText{
-      font-size:14px;
-      color:#eff5ff;
-      line-height:1.5;
-      white-space:pre-wrap;
-      word-break:break-word;
-    }
-
-    .taskTop{
-      display:flex;
-      justify-content:space-between;
-      gap:12px;
-      align-items:flex-start;
-    }
-
-    .taskActions{
-      display:flex;
-      gap:8px;
-      flex-wrap:wrap;
-      margin-top:10px;
-    }
-
-    .smallBtn{
-      border:none;
-      border-radius:10px;
-      border:1px solid rgba(255,255,255,.08);
-      background:rgba(255,255,255,.05);
-      color:#eef5ff;
-      padding:8px 12px;
-      cursor:pointer;
-      font-size:12px;
-      font-weight:700;
-    }
-
-    .smallBtn.danger{
-      border-color:rgba(255,110,160,.25);
-      background:rgba(255,85,136,.08);
-      color:#ffdbe8;
-    }
-
-    .voiceCard{
-      flex:1;
-      min-height:0;
-      background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.015));
-      border:1px solid rgba(255,255,255,.06);
-      border-radius:22px;
-      padding:16px;
-      display:flex;
-      flex-direction:column;
-      gap:12px;
-    }
-
-    .voiceTitle{ font-size:16px; line-height:1.4; }
-
-    .spacePill{
-      display:inline-flex;
-      align-items:center;
-      gap:12px;
-      width:max-content;
-      padding:10px 16px;
-      border-radius:999px;
-      border:1px dashed rgba(255,255,255,.16);
-      background:rgba(255,255,255,.015);
-    }
-
-    .spaceKey{
-      padding:6px 12px;
-      border-radius:10px;
-      border:1px solid rgba(255,255,255,.16);
-      background:rgba(255,255,255,.03);
-      font-weight:800;
-      letter-spacing:.1em;
-    }
-
-    .spaceText{ color:var(--muted); font-size:14px; }
-
-    .micWrap{ display:flex; justify-content:center; align-items:center; padding:6px 0 2px; }
-
-    .micOuter{
-      position:relative;
-      width:126px;
-      height:126px;
-      border-radius:50%;
-      display:grid;
-      place-items:center;
-      background:
-        radial-gradient(circle at center, rgba(255,255,255,.04) 0%, rgba(255,255,255,.02) 42%, transparent 60%),
-        radial-gradient(circle at center, rgba(39,214,255,.12), rgba(159,92,255,.08), transparent 70%);
-      box-shadow:0 0 28px rgba(39,214,255,.12), 0 0 60px rgba(159,92,255,.08), inset 0 0 20px rgba(255,255,255,.03);
-    }
-
-    .micOuter::before{
-      content:"";
-      position:absolute;
-      inset:14px;
-      border-radius:50%;
-      border:1px solid rgba(255,255,255,.06);
-    }
-
-    .micInner{
-      width:54px;
-      height:54px;
-      border-radius:50%;
-      display:grid;
-      place-items:center;
-      background:linear-gradient(135deg, rgba(39,214,255,.95), rgba(159,92,255,.92), rgba(255,79,216,.9));
-      box-shadow:0 0 18px rgba(39,214,255,.25), 0 0 24px rgba(159,92,255,.2);
-      font-size:22px;
-    }
-
-    .micStatus{
-      text-align:center;
-      color:var(--muted);
-      font-size:13px;
-      margin-top:-4px;
-    }
-
-    .responseBox{
-      min-height:96px;
-      max-height:160px;
-      overflow:auto;
-      border-radius:16px;
-      border:1px dashed rgba(255,255,255,.1);
-      background:rgba(255,255,255,.015);
-      padding:16px;
-      color:#d7e4ff;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      text-align:center;
-      line-height:1.55;
-      white-space:pre-wrap;
-      word-break:break-word;
-    }
-
-    .qaRow{
-      display:grid;
-      grid-template-columns:1fr auto;
-      gap:10px;
-      align-items:center;
-    }
-
-    .askInput{
-      height:46px;
-      border-radius:14px;
-      border:1px solid rgba(255,255,255,.08);
-      background:rgba(4,8,20,.7);
-      color:#eff6ff;
-      padding:0 14px;
-      font-size:14px;
-      outline:none;
-      width:100%;
-    }
-
-    .askBtn{
-      height:46px;
-      border-radius:14px;
-      border:1px solid rgba(255,255,255,.08);
-      background:rgba(255,255,255,.06);
-      color:#f5f8ff;
-      padding:0 18px;
-      font-weight:800;
-      cursor:pointer;
-    }
-
-    .quickBtns{
-      display:flex;
-      flex-wrap:wrap;
-      gap:10px;
-    }
-
-    .quickBtn{
-      border:none;
-      border-radius:14px;
-      border:1px solid rgba(255,255,255,.08);
-      background:rgba(255,255,255,.04);
-      color:#eef5ff;
-      padding:12px 16px;
-      cursor:pointer;
-      font-weight:700;
-    }
-
-    .quickBtn.on{
-      background:rgba(54,224,125,.12);
-      border-color:rgba(54,224,125,.28);
-      color:#d7ffe8;
-    }
-
-    .bottomBar{
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      gap:14px;
-      margin-top:6px;
-      color:var(--muted2);
-      font-size:12px;
-    }
-
-    .reminderBadge{
-      display:none;
-      margin-left:8px;
-      min-width:20px;
-      height:20px;
-      padding:0 6px;
-      border-radius:999px;
-      background:rgba(255,177,74,.18);
-      border:1px solid rgba(255,177,74,.35);
-      color:#ffe7c0;
-      font-size:12px;
-      line-height:18px;
-      text-align:center;
-      vertical-align:middle;
-    }
-
-    .registroWrap{
-      height:100%;
-      border-radius:24px;
-      border:1px solid rgba(124,157,255,.10);
-      overflow:hidden;
-      background:rgba(5,11,28,.55);
-    }
-
-    .registroFrame{
-      width:100%;
-      height:100%;
-      border:none;
-      background:#07112a;
-    }
-
-    @media (max-width:1200px){
-      .coreGrid{ grid-template-columns:1fr; }
-    }
-
-    @media (max-width:720px){
-      .shell{ padding:10px; }
-      .frame{ padding:12px; border-radius:20px; }
-      .top, .toolbar{ flex-direction:column; align-items:flex-start; }
-      .qaRow{ grid-template-columns:1fr; }
-      .chatHead, .sectionHead{ flex-direction:column; align-items:flex-start; }
-    }
-  </style>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+<title>Spectra AI - Interface</title>
+
+<style>
+
+:root{
+ --bg-main:#020617;
+ --bg-card:#020617cc;
+ --accent-cyan:#22d3ee;
+ --accent-purple:#a855f7;
+ --accent-pink:#ec4899;
+ --text-main:#e5e7eb;
+ --text-muted:#9ca3af;
+ --danger:#f97373;
+ --success:#4ade80;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+
+body{
+ font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+ background:radial-gradient(circle at top,#0b1120 0,#020617 40%,#000 100%);
+ color:var(--text-main);
+ min-height:100vh;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+}
+
+.glow-orbit{
+ position:fixed;
+ inset:0;
+ pointer-events:none;
+ background:
+ radial-gradient(circle at 10% 20%,#22d3ee33 0,transparent 50%),
+ radial-gradient(circle at 90% 80%,#a855f733 0,transparent 55%),
+ radial-gradient(circle at 50% 50%,#ec489933 0,transparent 60%);
+ opacity:.9;
+ mix-blend-mode:screen;
+ z-index:-1;
+}
+
+.container{width:100%;max-width:1200px;padding:24px}
+
+.card{
+ background:linear-gradient(135deg,#020617ee,#020617cc);
+ border-radius:24px;
+ border:1px solid #1f2937;
+ box-shadow:0 0 40px #0ea5e920,0 0 80px #a855f720;
+ padding:24px 28px 28px;
+ backdrop-filter:blur(20px);
+}
+
+/* HEADER */
+
+.header{
+ display:flex;
+ align-items:center;
+ justify-content:space-between;
+ margin-bottom:14px;
+ flex-wrap:wrap;
+}
+
+.logo-block{display:flex;align-items:center;gap:14px}
+
+.logo-orb{
+ width:48px;height:48px;border-radius:999px;
+ background:radial-gradient(circle at 30% 30%,#e0f2fe,#22d3ee 40%,#0f172a 70%);
+ box-shadow:0 0 18px #22d3eeaa,0 0 40px #22d3ee66;
+}
+
+.title-block h1{
+ font-size:1.6rem;
+ letter-spacing:.12em;
+ text-transform:uppercase;
+}
+
+.title-block span{
+ display:block;
+ font-size:.82rem;
+ text-transform:uppercase;
+ letter-spacing:.2em;
+ color:var(--accent-cyan);
+}
+
+.status-pill{
+ border-radius:999px;
+ padding:6px 14px;
+ display:inline-flex;
+ align-items:center;
+ gap:8px;
+ background:#020617;
+ border:1px solid #1f2937;
+ font-size:.8rem;
+}
+
+.status-dot{
+ width:8px;height:8px;border-radius:999px;
+ background:var(--success);
+ box-shadow:0 0 12px #4ade8080;
+}
+
+/* NAV */
+
+.nav{
+ width:100%;
+ display:flex;
+ justify-content:space-between;
+ margin-top:10px;
+ padding-top:10px;
+ border-top:1px solid #111827;
+ margin-bottom:18px;
+}
+
+.nav-left{display:flex;gap:8px;flex-wrap:wrap}
+
+.nav-link{
+ border-radius:999px;
+ border:1px solid #1f2937;
+ background:#020617;
+ color:#e5e7eb;
+ padding:8px 12px;
+ font-size:.78rem;
+ letter-spacing:.14em;
+ text-transform:uppercase;
+ display:inline-flex;
+ align-items:center;
+ gap:8px;
+ cursor:pointer;
+}
+
+.nav-link.active{
+ border-color:#22d3ee77;
+ background:radial-gradient(circle at top left,#22d3ee18,#020617);
+}
+
+.nav-link.logout{
+ border-color:rgba(249,115,115,.35);
+ background:rgba(249,115,115,.08);
+ color:#fecaca;
+}
+
+/* LAYOUT */
+
+.layout{
+ display:grid;
+ grid-template-columns:minmax(0,3fr) minmax(0,2fr);
+ gap:20px;
+}
+
+.panel{
+ border-radius:20px;
+ border:1px solid #111827;
+ padding:18px;
+ background:radial-gradient(circle at top,#020617,#020617dd 40%,#020617 100%);
+}
+
+.chat-window{
+ margin-top:10px;
+ border-radius:14px;
+ border:1px solid #111827;
+ background:#020617;
+ padding:12px;
+ max-height:420px;
+ overflow:auto;
+}
+
+/* MENSAJES */
+
+.msg{margin-bottom:10px;display:flex;gap:10px}
+
+.msg-avatar{
+ width:26px;height:26px;border-radius:999px;
+ display:flex;align-items:center;justify-content:center;
+ font-size:.82rem;
+}
+
+.msg.user .msg-avatar{
+ background:#22c55e22;color:#bbf7d0;border:1px solid #22c55e55;
+}
+
+.msg.ai .msg-avatar{
+ background:#22d3ee22;color:#e0faff;border:1px solid #22d3ee77;
+}
+
+.msg-bubble{
+ border-radius:12px;
+ padding:8px 11px;
+ font-size:.9rem;
+ line-height:1.4;
+ max-width:100%;
+ white-space:pre-wrap;
+}
+
+.msg.user .msg-bubble{
+ background:linear-gradient(135deg,#064e3b,#022c22);
+ border:1px solid #16a34a66;
+}
+
+.msg.ai .msg-bubble{
+ background:radial-gradient(circle at top left,#0f172a,#020617);
+ border:1px solid #1f2937;
+}
+
+.voice-card{
+ border-radius:18px;
+ border:1px solid #111827;
+ padding:14px;
+ background:radial-gradient(circle at 10% 0%,#22d3ee11,#020617 50%);
+}
+
+.wave-ring{
+ margin-top:12px;
+ width:120px;height:120px;border-radius:999px;
+ border:1px solid #1f2937;
+ display:flex;align-items:center;justify-content:center;
+}
+
+.mic-core{
+ width:52px;height:52px;border-radius:999px;
+ background:conic-gradient(from 210deg,#22d3ee,#a855f7,#ec4899,#22d3ee);
+ display:flex;align-items:center;justify-content:center;
+}
+
+.mic-core-inner{
+ width:44px;height:44px;border-radius:inherit;
+ background:#020617;
+ display:flex;align-items:center;justify-content:center;
+ font-size:1.4rem;
+}
+
+</style>
 </head>
+
 <body>
-  <div class="shell">
-    <div class="frame">
-      <div class="top">
-        <div class="brand">
-          <div class="orb"></div>
-          <div class="brandText">
-            <div class="kicker">INTERFAZ DE VOZ</div>
-            <div class="title">SPECTRA AI</div>
-          </div>
-        </div>
 
-        <div class="online">
-          <div class="dot"></div>
-          <div class="strong">ONLINE</div>
-          <div class="sub">Listo para escuchar</div>
-        </div>
-      </div>
+<div class="glow-orbit"></div>
 
-      <div class="toolbar">
-        <div class="toolbarLeft">
-          <button class="pill active" id="tabCore"><span class="accent">⚡</span>CORE</button>
-          <button class="pill" id="tabRem">⏱ RECORDATORIOS <span class="reminderBadge" id="remBadge">0</span></button>
-          <button class="pill" id="tabRegistro">📦 REGISTRO</button>
-          <button class="pill pillNew" id="btnNewChat"><span class="plus">＋</span>NUEVO CHAT</button>
-        </div>
+<div class="container">
 
-        <div class="toolbarRight">
-          <a class="iconBtn" href="/speaker-redirect" target="_blank">🔊 SPEAKER PC</a>
-        </div>
-      </div>
+<div class="card">
 
-      <div class="main">
-        <div class="view active" id="viewCore">
-          <div class="coreGrid">
-            <div class="panel leftPanel">
-              <div class="sectionHead">
-                <div class="sectionTitle">REGISTRO DE CONVERSACIÓN</div>
-                <div class="sectionMeta">Mensajes recientes</div>
-              </div>
+<div class="header">
+<div class="logo-block">
+<div class="logo-orb"></div>
+<div class="title-block">
+<span>INTERFAZ DE VOZ</span>
+<h1>SPECTRA AI</h1>
+</div>
+</div>
 
-              <div class="chatPanel">
-                <div class="chatHead">
-                  <div class="miniLabel">Tus chats ▼</div>
-                  <div class="chatBadge" id="activeChatLabel">Chat: Default</div>
-                </div>
+<div class="status-pill">
+<div class="status-dot"></div>
+<span>ONLINE</span>
+<span>Listo para escuchar</span>
+</div>
+</div>
 
-                <div class="chatList" id="chatsList"></div>
+<div class="nav">
+<div class="nav-left">
 
-                <div class="messagesWrap">
-                  <div class="messagesBox" id="coreList"></div>
-                </div>
-              </div>
-            </div>
+<button class="nav-link active" id="tabCore">⚡ Core</button>
+<button class="nav-link" id="tabRem">🗓 Recordatorios</button>
+<button class="nav-link" id="tabRegistro">🧾 Registro</button>
+<button class="nav-link" id="btnNewChat">➕ Nuevo chat</button>
 
-            <div class="panel rightPanel">
-              <div class="voiceCard">
-                <div class="voiceTitle">
-                  Mantén presionada la tecla <b>ESPACIO</b> para hablar con Spectra AI.
-                  Suelta la tecla para enviar el mensaje.
-                </div>
+</div>
 
-                <div class="spacePill">
-                  <div class="spaceKey">SPACE</div>
-                  <div class="spaceText">Presiona y mantén para grabar</div>
-                </div>
+<div class="nav-right">
 
-                <div class="micWrap">
-                  <div class="micOuter">
-                    <div class="micInner">🎙</div>
-                  </div>
-                </div>
+<a class="nav-link" href="/speaker-redirect" target="_blank">🔊 Speaker PC</a>
+<button class="nav-link logout" id="btnLogoutTop">Cerrar sesión</button>
 
-                <div class="micStatus" id="micStatus">Espera tranquila... Listo para hablar con Spectra</div>
+</div>
+</div>
 
-                <div class="responseBox" id="liveBox">Aquí verás la transcripción y la respuesta...</div>
+<div class="layout">
 
-                <div class="qaRow">
-                  <input id="q" class="askInput" placeholder="Escribe una pregunta (opcional)..." />
-                  <button class="askBtn" id="btnAsk">Preguntar</button>
-                </div>
+<div class="panel">
 
-                <div class="quickBtns">
-                  <button class="quickBtn" id="btnUltima">Última medición</button>
-                  <button class="quickBtn" id="btnCrudo">Sensores (crudo)</button>
-                  <button class="quickBtn" id="btnRefreshChats">Actualizar chats</button>
-                </div>
+<h3>Registro de conversación</h3>
 
-                <div class="quickBtns">
-                  <button class="quickBtn" id="btnNotif">Habilitar notificaciones</button>
-                  <button class="quickBtn" id="btnNotifTest">Probar notificación</button>
-                  <button class="quickBtn" id="btnOpenSpeaker">Abrir Speaker PC</button>
-                </div>
+<div id="chatsList"></div>
 
-                <div class="quickBtns">
-                  <button class="quickBtn" id="btnLoad">Cargar historial</button>
-                </div>
+<div class="chat-window" id="chatWindow"></div>
 
-                <div class="bottomBar">
-                  <div id="status">WS: desconectado</div>
-                  <div id="miniState">Chat activo: default</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+</div>
 
-        <div class="view" id="viewRem">
-          <div class="panel remPanel">
-            <div class="sectionHead">
-              <div class="sectionTitle">RECORDATORIOS</div>
-              <div class="sectionMeta">Tareas y recordatorios programados</div>
-            </div>
+<div class="voice-panel">
 
-            <div class="tasksBox" id="remList"></div>
-          </div>
-        </div>
+<div class="voice-card">
 
-        <div class="view" id="viewRegistro">
-          <div class="registroWrap">
-            <iframe class="registroFrame" src="/registro"></iframe>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
+<p>Mantén presionada la tecla <b>ESPACIO</b> para hablar con Spectra.</p>
+
+<div class="wave-ring">
+
+<div class="mic-core">
+<div class="mic-core-inner">🎙</div>
+</div>
+
+</div>
+
+<div id="transcriptBox">Aquí verás la transcripción…</div>
+
+<input id="textQuestion" placeholder="Escribe una pregunta…"/>
+
+<button id="btnAskText">Preguntar</button>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
 
 <script>
-  const tabCore = document.getElementById("tabCore");
-  const tabRem = document.getElementById("tabRem");
-  const tabRegistro = document.getElementById("tabRegistro");
-  const viewCore = document.getElementById("viewCore");
-  const viewRem = document.getElementById("viewRem");
-  const viewRegistro = document.getElementById("viewRegistro");
 
-  const remBadge = document.getElementById("remBadge");
-  const chatsListEl = document.getElementById("chatsList");
-  const coreList = document.getElementById("coreList");
-  const remList = document.getElementById("remList");
-  const activeChatLabel = document.getElementById("activeChatLabel");
-  const miniState = document.getElementById("miniState");
-  const liveBox = document.getElementById("liveBox");
-  const status = document.getElementById("status");
-  const micStatus = document.getElementById("micStatus");
-  const btnNotif = document.getElementById("btnNotif");
+document.getElementById("btnLogoutTop").onclick=async()=>{
+ if(!confirm("¿Cerrar sesión?"))return;
+ await fetch("/auth/logout",{method:"POST"});
+ location.href="/login";
+}
 
-  let unreadReminders = 0;
-  let currentChatId = localStorage.getItem("spectra_chat_id") || "default";
-  let notificationsEnabled = false;
-
-  function escapeHtml(s){
-    return (s || "")
-      .replaceAll("&","&amp;")
-      .replaceAll("<","&lt;")
-      .replaceAll(">","&gt;");
-  }
-
-  function setView(name){
-    [viewCore, viewRem, viewRegistro].forEach(v => v.classList.remove("active"));
-    [tabCore, tabRem, tabRegistro].forEach(t => t.classList.remove("active"));
-
-    if(name === "core"){
-      viewCore.classList.add("active");
-      tabCore.classList.add("active");
-    }else if(name === "rem"){
-      viewRem.classList.add("active");
-      tabRem.classList.add("active");
-      unreadReminders = 0;
-      remBadge.textContent = "0";
-      remBadge.style.display = "none";
-      loadTasks();
-    }else{
-      viewRegistro.classList.add("active");
-      tabRegistro.classList.add("active");
-    }
-  }
-
-  tabCore.onclick = () => setView("core");
-  tabRem.onclick = () => setView("rem");
-  tabRegistro.onclick = () => setView("registro");
-
-  function setCurrentChat(id, title){
-    currentChatId = id || "default";
-    localStorage.setItem("spectra_chat_id", currentChatId);
-    activeChatLabel.textContent = "Chat: " + (title || currentChatId);
-    miniState.textContent = "Chat activo: " + currentChatId;
-
-    document.querySelectorAll(".chatRow").forEach(el => el.classList.remove("active"));
-    const current = document.querySelector(`[data-chat-id="${currentChatId}"]`);
-    if(current) current.classList.add("active");
-  }
-
-  function renderChat(user, assistant, ts){
-    const div = document.createElement("div");
-    div.className = "msg";
-    div.innerHTML = `
-      <div class="meta">${escapeHtml(ts || "")}</div>
-      ${user ? `<div class="line"><b>Tú:</b> ${escapeHtml(user)}</div>` : ``}
-      ${assistant ? `<div class="line"><b>Spectra:</b> ${escapeHtml(assistant)}</div>` : ``}
-    `;
-    coreList.prepend(div);
-  }
-
-  function renderTask(task){
-    const text = task.text || task.assistant || "Recordatorio";
-    const runAt = task.run_at || task.created_at || "";
-    const done = !!task.done;
-
-    const div = document.createElement("div");
-    div.className = "taskItem";
-    div.innerHTML = `
-      <div class="taskTop">
-        <div>
-          <div class="taskText">${done ? "✅ " : "⏰ "}${escapeHtml(text)}</div>
-          <div class="taskMeta">${escapeHtml(runAt)}</div>
-        </div>
-      </div>
-      <div class="taskActions">
-        ${!done ? `<button class="smallBtn danger" data-del="${escapeHtml(task.id || "")}">Eliminar</button>` : ``}
-      </div>
-    `;
-
-    const del = div.querySelector("[data-del]");
-    if(del){
-      del.addEventListener("click", async () => {
-        const id = del.getAttribute("data-del");
-        if(!id) return;
-        if(!confirm("¿Eliminar este recordatorio?")) return;
-        try{
-          const r = await fetch(`/tasks-proxy/${encodeURIComponent(id)}`, { method:"DELETE" });
-          if(!r.ok) throw new Error("No se pudo eliminar");
-          await loadTasks();
-        }catch(e){
-          alert("No pude eliminar el recordatorio ❌");
-        }
-      });
-    }
-
-    remList.appendChild(div);
-  }
-
-  async function loadTasks(){
-    try{
-      remList.innerHTML = "";
-      const r = await fetch("/tasks-proxy");
-      const j = await r.json();
-      const tasks = j.tasks || [];
-      if(!tasks.length){
-        remList.innerHTML = `<div class="msg"><div class="line">No hay recordatorios todavía.</div></div>`;
-        return;
-      }
-
-      const ordered = [...tasks].sort((a,b) => String(b.run_at || "").localeCompare(String(a.run_at || "")));
-      ordered.forEach(renderTask);
-    }catch(e){
-      remList.innerHTML = `<div class="msg"><div class="line">No pude cargar recordatorios ❌</div></div>`;
-    }
-  }
-
-  async function loadChatsList(){
-    try{
-      const r = await fetch("/chats-proxy", {
-        method:"GET",
-        headers:{ "Cache-Control":"no-cache" }
-      });
-
-      const text = await r.text();
-      let j = {};
-      try{ j = JSON.parse(text); }catch(e){ throw new Error(text || "Respuesta inválida"); }
-
-      if(!r.ok) throw new Error(j.error || "No se pudo cargar chats");
-
-      const chats = j.chats || [];
-      chatsListEl.innerHTML = "";
-
-      if(!chats.find(c => c.id === "default")){
-        chats.unshift({id:"default", title:"Default", updated_at:""});
-      }
-
-      chats.forEach(c => {
-        const row = document.createElement("div");
-        row.className = "chatRow";
-        row.setAttribute("data-chat-id", c.id);
-        row.innerHTML = `
-          <div>
-            <div class="chatTitle">${escapeHtml(c.title || c.id)}</div>
-            <div class="chatMeta">${escapeHtml(c.updated_at || "")}</div>
-          </div>
-          <button class="deleteChat" data-del="${escapeHtml(c.id)}">🗑</button>
-        `;
-
-        row.addEventListener("click", async (e) => {
-          if(e.target.closest(".deleteChat")) return;
-          setCurrentChat(c.id, c.title || c.id);
-          await loadHistory();
-        });
-
-        const delBtn = row.querySelector(".deleteChat");
-        delBtn.addEventListener("click", async (e) => {
-          e.stopPropagation();
-          const id = delBtn.getAttribute("data-del");
-          if(id === "default"){
-            alert("No se puede borrar el chat Default.");
-            return;
-          }
-          if(!confirm("¿Eliminar este chat?")) return;
-          try{
-            const resp = await fetch(`/chats-proxy/${encodeURIComponent(id)}`, { method:"DELETE" });
-            if(!resp.ok) throw new Error("No se pudo borrar");
-            if(currentChatId === id){
-              setCurrentChat("default", "Default");
-              coreList.innerHTML = "";
-            }
-            await loadChatsList();
-            await loadHistory();
-          }catch(err){
-            alert("Error eliminando chat ❌");
-          }
-        });
-
-        chatsListEl.appendChild(row);
-      });
-
-      const current = chats.find(x => x.id === currentChatId) || chats[0];
-      if(current) setCurrentChat(current.id, current.title || current.id);
-    }catch(e){
-      console.error(e);
-      chatsListEl.innerHTML = `<div class="msg"><div class="line">No pude cargar chats ❌</div></div>`;
-    }
-  }
-
-  async function loadHistory(){
-    try{
-      const r = await fetch(`/chats-proxy/${encodeURIComponent(currentChatId)}?limit=120`, {
-        headers:{ "Cache-Control":"no-cache" }
-      });
-      const j = await r.json();
-      const hist = j.history || [];
-
-      coreList.innerHTML = "";
-      hist.forEach(item => {
-        const kind = item.kind || "";
-        if(kind === "ask" || kind === "talk" || kind === "talk_reminder" || kind === "talk_calendar" || kind === "talk_calendar_delete"){
-          if(item.user || item.assistant){
-            renderChat(item.user || "", item.assistant || "", item.ts || "");
-          }
-        }
-      });
-
-      if(!hist.length){
-        coreList.innerHTML = `<div class="msg"><div class="line">Este chat no tiene mensajes todavía.</div></div>`;
-      }
-    }catch(e){
-      console.error(e);
-      coreList.innerHTML = `<div class="msg"><div class="line">No pude cargar historial ❌</div></div>`;
-    }
-  }
-
-  async function refreshNotificationState(){
-    try{
-      const r = await fetch("/notifications/status");
-      const j = await r.json();
-      notificationsEnabled = !!(j.state && j.state.enabled);
-
-      if(notificationsEnabled){
-        btnNotif.textContent = "Notificaciones activadas";
-        btnNotif.classList.add("on");
-      }else{
-        btnNotif.textContent = "Habilitar notificaciones";
-        btnNotif.classList.remove("on");
-      }
-    }catch(e){
-      btnNotif.textContent = "Habilitar notificaciones";
-      btnNotif.classList.remove("on");
-    }
-  }
-
-  document.getElementById("btnRefreshChats").onclick = async () => { await loadChatsList(); };
-  document.getElementById("btnLoad").onclick = async () => { await loadHistory(); };
-
-  document.getElementById("btnNewChat").onclick = async () => {
-    try{
-      const r = await fetch("/chats-proxy", {
-        method:"POST",
-        headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify({ title:"Nuevo chat" })
-      });
-
-      const text = await r.text();
-      let j = {};
-      try{ j = JSON.parse(text); }catch(e){ throw new Error(text || "Respuesta inválida"); }
-
-      if(!r.ok || !j.chat) throw new Error(j.error || "No pude crear chat");
-
-      const chat = j.chat;
-      await loadChatsList();
-      setCurrentChat(chat.id, chat.title || chat.id);
-      coreList.innerHTML = "";
-      liveBox.textContent = "Aquí verás la transcripción y la respuesta...";
-      await loadHistory();
-      setView("core");
-    }catch(e){
-      console.error(e);
-      alert("No pude crear chat ❌");
-    }
-  };
-
-  document.getElementById("btnAsk").onclick = async () => {
-    const q = document.getElementById("q").value.trim();
-    if(!q) return;
-    document.getElementById("q").value = "";
-    micStatus.textContent = "Consultando a Spectra...";
-    try{
-      const r = await fetch("/ask-proxy", {
-        method:"POST",
-        headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify({ question:q, chat_id:currentChatId })
-      });
-      const j = await r.json();
-      const answer = j.answer || "";
-      renderChat(q, answer, new Date().toISOString());
-      liveBox.textContent = answer || "Sin respuesta";
-      await loadChatsList();
-    }catch(e){
-      liveBox.textContent = "Error consultando /ask";
-    }finally{
-      micStatus.textContent = "Espera tranquila... Listo para hablar con Spectra";
-    }
-  };
-
-  document.getElementById("btnOpenSpeaker").onclick = () => {
-    window.open("/speaker-redirect", "_blank");
-  };
-
-  document.getElementById("btnUltima").onclick = async () => {
-    try{
-      const r = await fetch("/firebase/ultima-proxy");
-      const j = await r.json();
-      liveBox.textContent = JSON.stringify(j.last || {}, null, 2);
-    }catch(e){
-      liveBox.textContent = "No pude cargar la última medición ❌";
-    }
-  };
-
-  document.getElementById("btnCrudo").onclick = async () => {
-    try{
-      const r = await fetch("/firebase/sensores-proxy");
-      const j = await r.json();
-      liveBox.textContent = JSON.stringify(j.data || {}, null, 2).slice(0, 2500);
-    }catch(e){
-      liveBox.textContent = "No pude cargar sensores ❌";
-    }
-  };
-
-  document.getElementById("btnNotif").onclick = async () => {
-    try{
-      const route = notificationsEnabled ? "/notifications/disable" : "/notifications/enable";
-      const r = await fetch(route, { method:"POST" });
-      if(!r.ok) throw new Error("No se pudo cambiar estado");
-      await refreshNotificationState();
-    }catch(e){
-      alert("No pude cambiar el estado de notificaciones ❌");
-    }
-  };
-
-  document.getElementById("btnNotifTest").onclick = async () => {
-    try{
-      const r = await fetch("/notifications/test", { method:"POST" });
-      const j = await r.json();
-      liveBox.textContent = j.message || "Notificación enviada";
-      alert(j.message || "Notificación de prueba enviada ✅");
-    }catch(e){
-      alert("No pude enviar la notificación de prueba ❌");
-    }
-  };
-
-  document.addEventListener("keydown", (e) => {
-    if(e.code === "Space" && !["INPUT","TEXTAREA"].includes(document.activeElement.tagName)){
-      e.preventDefault();
-      micStatus.textContent = "Grabación por SPACE aún no está conectada en esta versión.";
-    }
-  });
-
-  const wsProto = location.protocol === "https:" ? "wss" : "ws";
-
-  const wsCore = new WebSocket(`${wsProto}://${location.host}/ws`);
-  wsCore.onopen = () => status.textContent = "WS: conectado ✅";
-  wsCore.onclose = () => status.textContent = "WS: desconectado ❌";
-  wsCore.onerror = () => status.textContent = "WS: error ❌";
-
-  wsCore.onmessage = (ev) => {
-    try{
-      const data = JSON.parse(ev.data);
-      if(data.type === "talk"){
-        const msgChat = data.chat_id || "default";
-        if(msgChat !== currentChatId) return;
-        renderChat(data.transcript || "", data.answer || "", new Date().toISOString());
-        liveBox.textContent = (data.transcript || "") + "\n\n" + (data.answer || "");
-      }
-    }catch(e){}
-  };
-
-  const wsApp = new WebSocket(`${wsProto}://${location.host}/ws-app`);
-  wsApp.onmessage = (ev) => {
-    try{
-      const data = JSON.parse(ev.data);
-      if(data.type === "reminder"){
-        const msgChat = data.chat_id || "default";
-        if(msgChat !== currentChatId) return;
-
-        if(notificationsEnabled && "Notification" in window){
-          if(Notification.permission === "granted"){
-            new Notification("Spectra AI", {
-              body: data.text || "Tienes un recordatorio"
-            });
-          }
-        }
-
-        unreadReminders += 1;
-        remBadge.style.display = "inline-block";
-        remBadge.textContent = String(unreadReminders);
-        loadTasks();
-      }
-    }catch(e){}
-  };
-
-  setInterval(() => {
-    if(wsCore.readyState === 1) wsCore.send("ping");
-    if(wsApp.readyState === 1) wsApp.send("ping");
-  }, 25000);
-
-  (async () => {
-    if("Notification" in window && Notification.permission === "default"){
-      try{ await Notification.requestPermission(); }catch(e){}
-    }
-    await refreshNotificationState();
-    await loadChatsList();
-    await loadHistory();
-    await loadTasks();
-    setView("core");
-  })();
 </script>
+
 </body>
 </html>
 """
