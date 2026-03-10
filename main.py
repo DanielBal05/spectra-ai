@@ -31,10 +31,17 @@ N8N_BASE_URL = "https://n8n-lab-automation.onrender.com"
 
 def warmup_n8n():
     try:
-        requests.get(f"{N8N_BASE_URL}", timeout=8)
+        requests.get(N8N_BASE_URL, timeout=20)
         print("n8n despertado o ya activo")
     except Exception as e:
         print("No se pudo despertar n8n:", e)
+
+def is_n8n_awake():
+    try:
+        r = requests.get(N8N_BASE_URL, timeout=10)
+        return r.ok
+    except Exception:
+        return False
 
 print("MAIN REAL CARGADO:", os.path.abspath(__file__))
 # ===============================
@@ -2082,7 +2089,7 @@ def health_ollama():
 # ===============================
 @app.get("/")
 def root():
-    return RedirectResponse(url="/login", status_code=302)
+    return RedirectResponse(url="/boot", status_code=302)
 
 @app.get("/health")
 def health():
@@ -2100,6 +2107,117 @@ def health():
         "model": MODEL,
         "message": "Servidor listo: STT + Speaker PC + Firebase + Analítica + WS App + MultiChat"
     }
+
+@app.get("/ready-status")
+def ready_status():
+    warmup_n8n()
+    n8n_ok = is_n8n_awake()
+
+    return {
+        "ok": True,
+        "spectra": True,
+        "n8n": n8n_ok,
+        "ready": n8n_ok
+    }
+
+
+@app.get("/boot", response_class=HTMLResponse)
+def boot_screen():
+    return """
+    <!doctype html>
+    <html lang="es">
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <title>Iniciando Spectra</title>
+      <style>
+        body{
+          margin:0;
+          min-height:100vh;
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          background:
+            radial-gradient(circle at top, #0b1120 0, #020617 45%, #000 100%);
+          color:white;
+          font-family:Arial, sans-serif;
+        }
+        .box{
+          text-align:center;
+          padding:34px;
+          border-radius:24px;
+          background:rgba(255,255,255,.04);
+          border:1px solid rgba(255,255,255,.08);
+          width:min(92%, 560px);
+          box-shadow:0 0 30px rgba(34,211,238,.12);
+        }
+        .spinner{
+          width:58px;
+          height:58px;
+          border:5px solid rgba(255,255,255,.14);
+          border-top:5px solid #22d3ee;
+          border-radius:50%;
+          margin:0 auto 20px;
+          animation:spin 1s linear infinite;
+        }
+        @keyframes spin{
+          to{ transform:rotate(360deg); }
+        }
+        h2{
+          margin:0 0 12px;
+          font-size:28px;
+          letter-spacing:.04em;
+        }
+        p{
+          color:#cbd5e1;
+          line-height:1.6;
+          margin:0;
+        }
+        #state{
+          margin-top:18px;
+          font-size:14px;
+          color:#67e8f9;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="box">
+        <div class="spinner"></div>
+        <h2>Iniciando Spectra AI</h2>
+        <p>
+          Espera un momento mientras despertamos todos los servicios
+          para que el login y las funciones estén listas.
+        </p>
+        <div id="state">Verificando servicios...</div>
+      </div>
+
+      <script>
+        async function checkReady(){
+          try{
+            const r = await fetch("/ready-status", { cache: "no-store" });
+            const j = await r.json();
+
+            if(j.ready){
+              document.getElementById("state").textContent = "Todo listo. Entrando al login...";
+              setTimeout(() => {
+                window.location.href = "/login";
+              }, 900);
+              return;
+            }
+
+            document.getElementById("state").textContent = "Esperando a que n8n despierte...";
+          }catch(e){
+            document.getElementById("state").textContent = "Conectando con servicios...";
+          }
+
+          setTimeout(checkReady, 2500);
+        }
+
+        checkReady();
+      </script>
+    </body>
+    </html>
+    """
 
 @app.get("/warmup")
 def warmup():
