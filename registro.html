@@ -32,10 +32,11 @@
 
     .top{
       display:flex;
-      align-items:center;
+      align-items:flex-start;
       justify-content:space-between;
       gap:12px;
       margin-bottom:18px;
+      flex-wrap:wrap;
     }
 
     .title{
@@ -43,24 +44,6 @@
       letter-spacing:.18em;
       text-transform:uppercase;
       color:var(--muted);
-    }
-
-    .topRight{
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-      justify-content:flex-end;
-      align-items:center;
-    }
-
-    .linkBtn{
-      color:var(--cyan);
-      text-decoration:none;
-      font-weight:700;
-      border:1px solid #1b2a3a;
-      padding:10px 14px;
-      border-radius:14px;
-      background:#071026;
     }
 
     .pillTop{
@@ -71,6 +54,32 @@
       color:var(--muted);
       font-size:12px;
       display:none;
+      align-items:center;
+      margin-top:8px;
+    }
+
+    .volverBtn{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      padding:10px 14px;
+      border-radius:14px;
+      border:1px solid rgba(34,211,238,.28);
+      background:rgba(34,211,238,.12);
+      color:var(--text);
+      text-decoration:none;
+      font-weight:800;
+      font-size:13px;
+      white-space:nowrap;
+      transition:transform .18s ease, opacity .18s ease, border-color .18s ease;
+      min-height:44px;
+    }
+
+    .volverBtn:hover{
+      transform:translateY(-1px);
+      opacity:.96;
+      border-color:rgba(34,211,238,.45);
     }
 
     .grid{
@@ -86,6 +95,7 @@
       border-radius:18px;
       padding:16px;
       box-shadow:0 10px 30px rgba(0,0,0,.35);
+      min-width:0;
     }
 
     .card h3{
@@ -147,6 +157,8 @@
       background:#050b18;
       color:var(--text);
       outline:none;
+      min-height:48px;
+      font-size:16px;
     }
 
     select:focus, input:focus{
@@ -163,6 +175,7 @@
       color:var(--text);
       font-weight:800;
       cursor:pointer;
+      min-height:48px;
     }
 
     .btn:disabled{
@@ -242,6 +255,7 @@
       padding:6px 10px;
       border-radius:999px;
       font-size:12px;
+      overflow-wrap:anywhere;
     }
 
     .name{
@@ -254,6 +268,7 @@
       font-size:12px;
       margin-top:6px;
       line-height:1.5;
+      overflow-wrap:anywhere;
     }
 
     .actions{
@@ -272,6 +287,7 @@
       cursor:pointer;
       font-weight:800;
       min-width:150px;
+      min-height:44px;
     }
 
     .btnOk{
@@ -336,17 +352,109 @@
       .item{grid-template-columns:1fr}
       .actions{flex-direction:row;flex-wrap:wrap}
     }
+
+    @media (max-width: 768px){
+      body{
+        padding:12px;
+      }
+
+      .top{
+        margin-bottom:14px;
+      }
+
+      .title{
+        font-size:15px;
+        letter-spacing:.15em;
+      }
+
+      .pillTop{
+        width:100%;
+        border-radius:14px;
+        margin-top:8px;
+      }
+
+      .volverBtn{
+        width:100%;
+      }
+
+      .grid{
+        grid-template-columns:1fr;
+        gap:14px;
+      }
+
+      .card{
+        padding:14px;
+      }
+
+      .cardHead{
+        flex-direction:column;
+        align-items:stretch;
+      }
+
+      .downloadBtn{
+        width:100%;
+      }
+
+      .listHead{
+        flex-direction:column;
+        align-items:stretch;
+      }
+
+      .filters{
+        flex-direction:column;
+        align-items:stretch;
+        width:100%;
+      }
+
+      .filters select,
+      .filters button,
+      .filters .pill{
+        width:100%;
+      }
+
+      .listaWrap{
+        max-height:none;
+        overflow:visible;
+        padding-right:0;
+      }
+
+      .item{
+        grid-template-columns:1fr;
+        gap:14px;
+      }
+
+      .name{
+        width:100%;
+      }
+
+      .actions{
+        flex-direction:column;
+        width:100%;
+      }
+
+      .btnSmall{
+        width:100%;
+        min-width:0;
+      }
+
+      .toast{
+        left:12px;
+        right:12px;
+        bottom:12px;
+        max-width:none;
+      }
+    }
   </style>
 </head>
 <body>
   <div class="top">
-    <div class="title">Registro de préstamos</div>
-    <div class="topRight">
+    <div>
+      <div class="title">Registro de préstamos</div>
       <span class="pillTop" id="whoPill">Estudiante: — | Banner: —</span>
-      <a class="linkBtn" href="/">← Volver a Spectra</a>
-      <a class="linkBtn" href="/reminders">⏰ Recordatorios</a>
-      <a class="linkBtn" href="/login">🔐 Cambiar usuario</a>
     </div>
+
+    <!-- ÚNICO botón visible en esta pestaña -->
+    <a href="/" class="volverBtn">← Volver a Spectra</a>
   </div>
 
   <div class="grid">
