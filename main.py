@@ -2795,7 +2795,7 @@ def ask(req: AskReq):
         )
 
         try:
-            raw_answer = ask_ollama(prompt)
+            raw_answer = ask_gemini(prompt)
             answer = compact_answer(raw_answer, max_chars=max_chars)
         except Exception as e:
             print("❌ /ask error en Ollama:", repr(e))
