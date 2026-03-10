@@ -10,4 +10,5 @@ google-generativeai==0.7.2
 python-multipart==0.0.9
 gunicorn
 google-generativeai
+protobuf<5
 
