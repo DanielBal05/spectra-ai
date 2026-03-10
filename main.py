@@ -27,6 +27,15 @@ from typing import Optional
 from dotenv import load_dotenv
 load_dotenv()
 
+N8N_BASE_URL = "https://n8n-lab-automation.onrender.com"
+
+def warmup_n8n():
+    try:
+        requests.get(f"{N8N_BASE_URL}", timeout=8)
+        print("n8n despertado o ya activo")
+    except Exception as e:
+        print("No se pudo despertar n8n:", e)
+
 print("MAIN REAL CARGADO:", os.path.abspath(__file__))
 # ===============================
 # ✅ TIMEZONE (Render-safe)
@@ -2091,6 +2100,12 @@ def health():
         "model": MODEL,
         "message": "Servidor listo: STT + Speaker PC + Firebase + Analítica + WS App + MultiChat"
     }
+
+@app.get("/warmup")
+def warmup():
+    warmup_n8n()
+    return {"ok": True, "message": "Spectra y n8n despertando"}
+
 # ===============================
 # 🔥 Endpoints Firebase
 # ===============================
