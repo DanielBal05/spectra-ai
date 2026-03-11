@@ -623,20 +623,18 @@
         </div>
 
         <div class="actions">
-          ${
-            isPendiente
-              ? `<button class="btnSmall btnInfo" data-ent="${it.ID || ""}" ${it.ID ? "" : "disabled"}>Entregado</button>`
-              : `<button class="btnSmall btnOk" disabled>${isPrestado ? "✅ Entregado" : "✅ Procesado"}</button>`
-          }
+  ${
+    isPendiente
+      ? `<button class="btnSmall btnInfo" data-ent="${it.ID || ""}" ${it.ID ? "" : "disabled"}>Entregado</button>`
+      : `<button class="btnSmall btnOk" disabled>${isPrestado ? "✅ Entregado" : "✅ Procesado"}</button>`
+  }
 
-          ${
-            isPrestado
-              ? `<button class="btnSmall btnDanger" data-dev="${it.ID || ""}" ${it.ID ? "" : "disabled"}>Devolver</button>`
-              : isDevuelto
-                ? `<button class="btnSmall btnOk" disabled>✅ Devuelto</button>`
-                : `<button class="btnSmall btnWarn" disabled>Pendiente entrega</button>`
-          }
-        </div>
+  ${
+    isDevuelto
+      ? `<button class="btnSmall btnOk" disabled>✅ Devuelto</button>`
+      : `<button class="btnSmall btnDanger" data-dev="${it.ID || ""}" ${it.ID ? "" : "disabled"}>Devolver</button>`
+  }
+</div>
       `;
 
       list.appendChild(div);
