@@ -404,6 +404,7 @@
           <select id="filtroEstado">
             <option value="todos">Todos</option>
             <option value="pendiente">Solo Pendientes</option>
+            <option value="entregables">Entregables</option>
             <option value="prestado">Solo Prestados</option>
             <option value="devuelto">Solo Devueltos</option>
           </select>
@@ -572,9 +573,18 @@
     const filtro = $("filtroEstado").value;
     let filtered = items.filter(it => !isBlankRow(it));
 
-    if (filtro !== "todos"){
-      filtered = filtered.filter(it => stateKey(it) === filtro);
-    }
+    if (filtro === "prestado") {
+  filtered = filtered.filter(it => stateKey(it) === "prestado");
+}
+
+else if (filtro === "entregables") {
+  filtered = filtered.filter(it => stateKey(it) === "pendiente"); 
+  // pendiente = estado "-"
+}
+
+else if (filtro === "devuelto") {
+  filtered = filtered.filter(it => stateKey(it) === "devuelto");
+}
 
     filtered.sort((a, b) => (b.Fecha || "").localeCompare(a.Fecha || ""));
     $("countPill").textContent = `${filtered.length} items`;
