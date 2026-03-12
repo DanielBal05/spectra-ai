@@ -3226,57 +3226,7 @@ def api_lab_listar_fastapi():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/api/lab/prestar")
-def api_lab_prestar_fastapi(payload: LabPrestarReq):
-    body = {
-        "nombre": payload.nombre or "",
-        "semestre": payload.semestre or "",
-        "equipo": payload.equipo or "",
-        "banner_id": payload.banner_id or "",
-        "Extras": payload.extra_general or ""
-    }
 
-    try:
-        print("\n========== DEBUG FASTAPI PRESTAR ==========")
-        print("payload recibido en FastAPI:", payload.model_dump())
-        print("body enviado a n8n:", body)
-        print("URL N8N_PRESTAR:", N8N_PRESTAR)
-        print("===========================================\n")
-
-        r = requests.post(N8N_PRESTAR, json=body, timeout=30)
-
-        print("STATUS N8N:", r.status_code)
-        try:
-            data = r.json()
-            print("RESPUESTA N8N JSON:", data)
-            return data
-        except Exception:
-            print("RESPUESTA N8N TEXTO:", r.text[:1000])
-            return {"ok": False, "raw": r.text[:1000]}
-
-    except Exception as e:
-        print("ERROR EN /api/lab/prestar:", str(e))
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/api/lab/devolver")
-def api_lab_devolver_fastapi(payload: LabDevolverReq):
-
-    body = {}
-
-    if payload.id:
-        body["id"] = payload.id
-
-    if payload.row_number is not None:
-        body["row_number"] = payload.row_number
-
-    if not body:
-        raise HTTPException(status_code=400, detail="Falta id o row_number")
-
-    try:
-        r = requests.post(N8N_DEVOLVER, json=body, timeout=30)
-        return r.json()
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
 # ===============================
 # Montar Flask (login antiguo)
