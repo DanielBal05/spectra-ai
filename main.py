@@ -30,6 +30,11 @@ load_dotenv()
 
 N8N_BASE_URL = "https://n8n-lab-automation.onrender.com"
 
+N8N_PRESTAR = f"{N8N_BASE_URL}/webhook/lab/prestamo"
+N8N_ENTREGAR = f"{N8N_BASE_URL}/webhook/lab-entregar"
+N8N_DEVOLVER = f"{N8N_BASE_URL}/webhook/lab/devolver"
+N8N_LISTAR = f"{N8N_BASE_URL}/webhook/lab/listar"
+
 def warmup_n8n():
     try:
         requests.get(N8N_BASE_URL, timeout=20)
@@ -2371,6 +2376,22 @@ class TaskCreateReq(BaseModel):
 class ChatCreateReq(BaseModel):
     title: Optional[str] = "Nuevo chat"
 
+
+class LabPrestarReq(BaseModel):
+    nombre: str
+    semestre: str
+    equipo: str = ""
+    banner_id: str = ""
+    extra_general: str = ""
+
+class LabEntregarReq(BaseModel):
+    id: str
+
+class LabDevolverReq(BaseModel):
+    id: Optional[str] = None
+    row_number: Optional[int] = None
+
+
 # ===============================
 # ✅ Multi-chat local (JSON)
 # ===============================
@@ -3193,6 +3214,70 @@ def tasks_proxy():
 @app.delete("/tasks-proxy/{task_id}")
 def delete_task_proxy(task_id: str):
     return delete_task(task_id)
+
+@app.get("/api/lab/listar")
+def api_lab_listar_fastapi():
+    try:
+        r = requests.get(N8N_LISTAR, timeout=30)
+        return r.json()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/lab/prestar")
+def api_lab_prestar_fastapi(payload: LabPrestarReq):
+
+    body = {
+        "nombre": payload.nombre,
+        "semestre": payload.semestre,
+        "equipo": payload.equipo or "",
+        "banner_id": payload.banner_id or "",
+        "Extras": payload.extra_general or ""
+    }
+
+    try:
+        r = requests.post(N8N_PRESTAR, json=body, timeout=30)
+        return r.json()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/lab/entregar")
+def api_lab_entregar_fastapi(payload: LabEntregarReq):
+
+    try:
+        r = requests.post(N8N_ENTREGAR, json={"id": payload.id}, timeout=30)
+        data = r.json()
+
+        return {
+            "ok": True,
+            "msg": data.get("msg", "Equipo entregado correctamente"),
+            "id": payload.id
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/lab/devolver")
+def api_lab_devolver_fastapi(payload: LabDevolverReq):
+
+    body = {}
+
+    if payload.id:
+        body["id"] = payload.id
+
+    if payload.row_number is not None:
+        body["row_number"] = payload.row_number
+
+    if not body:
+        raise HTTPException(status_code=400, detail="Falta id o row_number")
+
+    try:
+        r = requests.post(N8N_DEVOLVER, json=body, timeout=30)
+        return r.json()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 # ===============================
 # Montar Flask (login antiguo)
