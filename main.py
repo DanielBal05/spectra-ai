@@ -2380,11 +2380,11 @@ class ChatCreateReq(BaseModel):
 
 
 class LabPrestarReq(BaseModel):
-    nombre: str
-    semestre: str
-    equipo: str = ""
-    banner_id: str = ""
-    extra_general: str = ""
+    nombre: Optional[str] = ""
+    semestre: Optional[str] = ""
+    equipo: Optional[str] = ""
+    banner_id: Optional[str] = ""
+    extra_general: Optional[str] = ""
 
 class LabEntregarReq(BaseModel):
     id: str
@@ -3229,8 +3229,8 @@ def api_lab_listar_fastapi():
 @app.post("/api/lab/prestar")
 def api_lab_prestar_fastapi(payload: LabPrestarReq):
     body = {
-        "nombre": payload.nombre,
-        "semestre": payload.semestre,
+        "nombre": payload.nombre or "",
+        "semestre": payload.semestre or "",
         "equipo": payload.equipo or "",
         "banner_id": payload.banner_id or "",
         "Extras": payload.extra_general or ""
@@ -3257,23 +3257,6 @@ def api_lab_prestar_fastapi(payload: LabPrestarReq):
     except Exception as e:
         print("ERROR EN /api/lab/prestar:", str(e))
         raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/api/lab/entregar")
-def api_lab_entregar_fastapi(payload: LabEntregarReq):
-
-    try:
-        r = requests.post(N8N_ENTREGAR, json={"id": payload.id}, timeout=30)
-        data = r.json()
-
-        return {
-            "ok": True,
-            "msg": data.get("msg", "Equipo entregado correctamente"),
-            "id": payload.id
-        }
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
 
 @app.post("/api/lab/devolver")
 def api_lab_devolver_fastapi(payload: LabDevolverReq):
