@@ -36,7 +36,6 @@ N8N_DEVOLVER = f"{N8N_BASE_URL}/webhook/lab/devolver"
 N8N_LISTAR = f"{N8N_BASE_URL}/webhook/lab/listar"
 
 
-
 def warmup_n8n():
     try:
         requests.get(N8N_BASE_URL, timeout=20)
@@ -3222,6 +3221,45 @@ def api_lab_listar_fastapi():
     try:
         r = requests.get(N8N_LISTAR, timeout=30)
         return r.json()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/lab/entregar")
+def api_lab_entregar_fastapi(payload: LabEntregarReq):
+    try:
+        body = {"id": payload.id}
+
+        print("\n========== DEBUG FASTAPI ENTREGAR ==========")
+        print("payload recibido:", payload.model_dump())
+        print("body enviado a n8n:", body)
+        print("URL N8N_ENTREGAR:", N8N_ENTREGAR)
+        print("============================================\n")
+
+        r = requests.post(N8N_ENTREGAR, json=body, timeout=30)
+
+        try:
+            data = r.json()
+        except Exception:
+            data = {"raw": (r.text or "")[:1000]}
+
+        print("STATUS N8N:", r.status_code)
+        print("RESPUESTA N8N:", data)
+
+        if not r.ok:
+            raise HTTPException(
+                status_code=r.status_code,
+                detail=data
+            )
+
+        return {
+            "ok": True,
+            "msg": data.get("msg") or data.get("message") or "Equipo entregado correctamente ✅",
+            "id": payload.id,
+            "data": data
+        }
+
+    except requests.exceptions.Timeout:
+        raise HTTPException(status_code=504, detail="Timeout llamando a n8n /entregar")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
