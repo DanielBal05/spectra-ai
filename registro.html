@@ -613,8 +613,13 @@ else if (filtro === "devuelto") {
         statusText = "Devuelto";
       }
 
-      const itemChipValue = it.Equipo || it.Extras || "-";
-const itemChipLabel = it.Equipo ? "Equipo" : (it.Extras ? "Extras" : "Equipo");
+      const equipoChip = it.Equipo
+  ? `<span class="chip">Equipo: ${it.Equipo}</span>`
+  : "";
+
+const extrasChip = it.Extras
+  ? `<span class="chip">Extras: ${it.Extras}</span>`
+  : "";
 
       const div = document.createElement("div");
       div.className = "item";
@@ -624,7 +629,8 @@ const itemChipLabel = it.Equipo ? "Equipo" : (it.Extras ? "Extras" : "Equipo");
           <div class="row1">
   <div class="name">${it.Nombre || "(sin nombre)"}</div>
   <span class="chip">Semestre: ${it.Semestre || "-"}</span>
-  <span class="chip">${itemChipLabel}: ${itemChipValue}</span>
+  ${equipoChip}
+  ${extrasChip}
 </div>
           <div class="sub">
             <span>Fecha: ${formatFecha(it.Fecha)}</span>
