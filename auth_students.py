@@ -1,48 +1,62 @@
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 import os
-import json
 import re
+import psycopg
 
 router = APIRouter()
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = os.path.join(BASE_DIR, "data")
-os.makedirs(DATA_DIR, exist_ok=True)
-
-STUDENTS_FILE = os.path.join(DATA_DIR, "students.json")
+DATABASE_URL = os.environ.get("DATABASE_URL", "").strip()
 
 
-def load_students():
-    if not os.path.exists(STUDENTS_FILE):
-        return []
-    try:
-        with open(STUDENTS_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except:
-        return []
+def get_conn():
+    if not DATABASE_URL:
+        raise RuntimeError("Falta DATABASE_URL en variables de entorno")
+    return psycopg.connect(DATABASE_URL)
 
 
-def save_students(students):
-    with open(STUDENTS_FILE, "w", encoding="utf-8") as f:
-        json.dump(students, f, indent=2, ensure_ascii=False)
+def init_students_table():
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS students (
+                    id SERIAL PRIMARY KEY,
+                    nombre TEXT NOT NULL,
+                    banner TEXT NOT NULL UNIQUE,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+        conn.commit()
 
 
 def valid_banner(banner: str):
     return bool(re.fullmatch(r"A\d+", banner))
 
 
-def find_student(banner):
-    students = load_students()
-    for s in students:
-        if s["banner"].upper() == banner.upper():
-            return s
-    return None
+def find_student(banner: str):
+    banner = (banner or "").strip().upper()
+    if not banner:
+        return None
+
+    init_students_table()
+
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT nombre, banner FROM students WHERE UPPER(banner) = UPPER(%s) LIMIT 1",
+                (banner,)
+            )
+            row = cur.fetchone()
+
+    if not row:
+        return None
+
+    return {
+        "nombre": row[0],
+        "banner": row[1]
+    }
 
 
-# ===============================
-# PANTALLA REGISTRO
-# ===============================
 @router.get("/registro-alumno", response_class=HTMLResponse)
 def registro_page():
     return """
@@ -62,18 +76,14 @@ def registro_page():
   --stroke2: rgba(34, 211, 238, .22);
   --text:#e5e7eb;
   --muted:#9ca3af;
-
   --cyan:#22d3ee;
   --purple:#a855f7;
   --pink:#ec4899;
-
   --danger:#f97373;
   --ok:#4ade80;
-
   --shadow: 0 20px 70px rgba(0,0,0,.55);
   --radius: 22px;
 }
-
 *{ box-sizing:border-box; margin:0; padding:0; }
 html, body { height:100%; }
 
@@ -91,7 +101,6 @@ body{
     radial-gradient(700px 500px at 50% 85%, rgba(236,72,153,.10), transparent 60%),
     radial-gradient(circle at top, #0b1120 0, #020617 45%, #000 100%);
 }
-
 body::before{
   content:"";
   position:absolute;
@@ -107,7 +116,6 @@ body::before{
   z-index:-2;
   pointer-events:none;
 }
-
 body::after{
   content:"";
   position:absolute;
@@ -126,24 +134,20 @@ body::after{
   z-index:-1;
   pointer-events:none;
 }
-
 @keyframes floatWave{
   0%{ transform: translateX(-40px) translateY(-25px) scale(1); }
   50%{ transform: translateX(45px) translateY(25px) scale(1.08); }
   100%{ transform: translateX(-15px) translateY(10px) scale(1.02); }
 }
-
 @keyframes gridDrift{
   0%{ transform: translateY(0px); }
   50%{ transform: translateY(18px); }
   100%{ transform: translateY(0px); }
 }
-
 .wrap{
   position:relative;
   width:min(92vw, 440px);
 }
-
 .glow{
   position:absolute; inset:-40px;
   background:
@@ -154,7 +158,6 @@ body::after{
   opacity:.9;
   pointer-events:none;
 }
-
 .card{
   position:relative;
   background: var(--card);
@@ -166,7 +169,6 @@ body::after{
   overflow:hidden;
   transform: translateZ(0);
 }
-
 .card::before{
   content:"";
   position:absolute; inset:0;
@@ -182,7 +184,6 @@ body::after{
   opacity:.45;
   pointer-events:none;
 }
-
 .card::after{
   content:"";
   position:absolute; left:-30%; top:-20%;
@@ -192,14 +193,12 @@ body::after{
   animation: scan 5.2s linear infinite;
   pointer-events:none;
 }
-
 @keyframes scan{
   0%{ transform: translateY(-140px) rotate(8deg); opacity:.0; }
   15%{ opacity:.65; }
   55%{ opacity:.35; }
   100%{ transform: translateY(520px) rotate(8deg); opacity:.0; }
 }
-
 .brand{
   display:flex;
   align-items:center;
@@ -207,7 +206,6 @@ body::after{
   gap:10px;
   margin-bottom: 18px;
 }
-
 .badge{
   width:46px; height:46px;
   border-radius: 16px;
@@ -219,14 +217,12 @@ body::after{
   border:1px solid rgba(34,211,238,.22);
   box-shadow: 0 0 22px rgba(34,211,238,.10);
 }
-
 .badge svg{
   width:22px; height:22px;
   fill:none;
   stroke: rgba(229,231,235,.9);
   stroke-width: 1.7;
 }
-
 h2{
   text-align:center;
   letter-spacing:.28em;
@@ -236,21 +232,18 @@ h2{
   color: var(--muted);
   margin-bottom: 6px;
 }
-
 .sub{
   text-align:center;
   color: rgba(229,231,235,.78);
   font-size: 13px;
   margin-bottom: 22px;
 }
-
 .hr{
   height:1px;
   background: linear-gradient(90deg, transparent, rgba(34,211,238,.22), rgba(168,85,247,.18), transparent);
   margin: 14px 0 22px;
   opacity:.8;
 }
-
 label{
   font-size: 11px;
   color: rgba(156,163,175,.95);
@@ -259,12 +252,10 @@ label{
   letter-spacing: .08em;
   text-transform: uppercase;
 }
-
 .field{
   position:relative;
   margin-top:6px;
 }
-
 input{
   width:100%;
   padding: 12px 12px 12px 40px;
@@ -275,16 +266,13 @@ input{
   outline:none;
   transition: border-color .12s ease, box-shadow .12s ease;
 }
-
 input::placeholder{
   color: rgba(156,163,175,.55);
 }
-
 input:focus{
   border-color: rgba(34,211,238,.55);
   box-shadow: 0 0 0 3px rgba(34,211,238,.10);
 }
-
 .icon{
   position:absolute;
   left:12px; top:50%;
@@ -295,7 +283,6 @@ input:focus{
   stroke: rgba(229,231,235,.80);
   stroke-width: 1.7;
 }
-
 .btn{
   width:100%;
   padding: 13px 14px;
@@ -311,29 +298,24 @@ input:focus{
   transition: transform .12s ease, border-color .12s ease, box-shadow .12s ease, filter .12s ease;
   box-shadow: 0 10px 30px rgba(0,0,0,.25);
 }
-
 .btn:hover{
   border-color: rgba(34,211,238,.55);
   box-shadow: 0 14px 38px rgba(0,0,0,.35), 0 0 22px rgba(34,211,238,.10);
   filter: brightness(1.04);
   transform: translateY(-1px);
 }
-
 .btn:active{
   transform: translateY(0px) scale(.99);
 }
-
 .btn.submit{
   background: linear-gradient(135deg, rgba(34,211,238,.95), rgba(168,85,247,.55));
   border: 1px solid rgba(34,211,238,.25);
   font-weight: 900;
 }
-
 .btn.secondary{
   background: rgba(2,6,23,.45);
   border: 1px solid rgba(255,255,255,.10);
 }
-
 .error{
   margin-top: 12px;
   color: var(--danger);
@@ -341,7 +323,6 @@ input:focus{
   text-align:center;
   min-height: 18px;
 }
-
 .success{
   margin-top: 12px;
   color: var(--ok);
@@ -349,7 +330,6 @@ input:focus{
   text-align:center;
   min-height: 18px;
 }
-
 @media (max-width:420px){
   .card{ padding: 30px 22px 22px; }
 }
@@ -415,14 +395,13 @@ async function registrar(){
     return;
   }
 
- if(!/^A\d+$/.test(banner)){
-  document.getElementById("studentError").textContent =
-  "El ID Banner debe empezar con A y luego solo números ❗";
-  return;
-}
+  if(!/^A\d+$/.test(banner)){
+    error.textContent = "El ID Banner debe empezar con A y luego solo números. Ej: A00123456";
+    return;
+  }
 
   try{
-   const r = await fetch("/registro-alumno", {
+    const r = await fetch("/registro-alumno", {
       method: "POST",
       headers: {"Content-Type": "application/json"},
       body: JSON.stringify({ nombre, banner })
@@ -450,43 +429,52 @@ async function registrar(){
 """
 
 
-# ===============================
-# REGISTRAR
-# ===============================
-
 @router.post("/registro-alumno")
 async def register_student(request: Request):
+    try:
+        data = await request.json()
 
-    data = await request.json()
+        nombre = (data.get("nombre") or "").strip()
+        banner = (data.get("banner") or "").strip().upper()
 
-    nombre = data.get("nombre","").strip()
-    banner = data.get("banner","").strip().upper()
+        if not nombre or not banner:
+            return JSONResponse({
+                "ok": False,
+                "error": "Faltan datos (Nombre/ID Banner)"
+            }, status_code=400)
 
-    if not valid_banner(banner):
+        if not valid_banner(banner):
+            return JSONResponse({
+                "ok": False,
+                "error": "El banner debe iniciar con A y solo números"
+            }, status_code=400)
+
+        init_students_table()
+
+        with get_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT 1 FROM students WHERE UPPER(banner) = UPPER(%s) LIMIT 1",
+                    (banner,)
+                )
+                exists = cur.fetchone()
+
+                if exists:
+                    return JSONResponse({
+                        "ok": False,
+                        "error": "Estudiante ya registrado"
+                    }, status_code=400)
+
+                cur.execute(
+                    "INSERT INTO students (nombre, banner) VALUES (%s, %s)",
+                    (nombre, banner)
+                )
+            conn.commit()
+
+        return JSONResponse({"ok": True}, status_code=200)
+
+    except Exception as e:
         return JSONResponse({
-            "ok":False,
-            "error":"El banner debe iniciar con A y solo números"
-        })
-
-    students=load_students()
-
-    if find_student(banner):
-        return JSONResponse({
-            "ok":False,
-            "error":"Estudiante ya registrado"
-        })
-
-    students.append({
-        "nombre":nombre,
-        "banner":banner
-    })
-
-    save_students(students)
-
-    return {"ok":True}
-
-
-# ===============================
-# LOGIN ESTUDIANTE
-# ===============================
-
+            "ok": False,
+            "error": f"Error registrando estudiante: {str(e)}"
+        }, status_code=500)
