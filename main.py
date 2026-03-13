@@ -646,9 +646,7 @@ setInterval(() => { if (ws.readyState === 1) ws.send("ping"); }, 25000);
 """
 
 @app.get("/app-spectra", response_class=HTMLResponse)
-def app_spectra_page(request: Request):
-    if request.session.get("role") != "admin":
-     return RedirectResponse(url="/login", status_code=302)
+def app_spectra_page():
     return r"""
 <!DOCTYPE html>
 <html lang="es">
