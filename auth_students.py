@@ -43,7 +43,7 @@ def find_student(banner):
 # ===============================
 # PANTALLA REGISTRO
 # ===============================
-@router.get("/registro-estudiante", response_class=HTMLResponse)
+@router.get("/registro-alumno", response_class=HTMLResponse)
 def registro_page():
     return """
 <!DOCTYPE html>
@@ -422,7 +422,7 @@ async function registrar(){
 }
 
   try{
-    const r = await fetch("/registro-estudiante", {
+   const r = await fetch("/registro-alumno", {
       method: "POST",
       headers: {"Content-Type": "application/json"},
       body: JSON.stringify({ nombre, banner })
@@ -454,7 +454,7 @@ async function registrar(){
 # REGISTRAR
 # ===============================
 
-@router.post("/registro-estudiante")
+@router.post("/registro-alumno")
 async def register_student(request: Request):
 
     data = await request.json()
