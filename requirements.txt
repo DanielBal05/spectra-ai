@@ -11,4 +11,4 @@ python-multipart==0.0.9
 gunicorn
 google-generativeai
 protobuf<5
-
+psycopg[binary]==3.2.9
