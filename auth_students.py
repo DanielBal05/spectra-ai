@@ -489,29 +489,3 @@ async def register_student(request: Request):
 # LOGIN ESTUDIANTE
 # ===============================
 
-@router.post("/auth/student")
-async def auth_student(request:Request):
-
-    data=await request.json()
-
-    nombre=data.get("nombre","").strip()
-    banner=data.get("banner","").strip().upper()
-
-    student=find_student(banner)
-
-    if not student:
-        return JSONResponse({
-            "ok":False,
-            "error":"Este estudiante no está registrado"
-        })
-
-    if student["nombre"].lower()!=nombre.lower():
-        return JSONResponse({
-            "ok":False,
-            "error":"El nombre no coincide"
-        })
-
-    return {
-        "ok":True,
-        "redirect":"/spectra"
-    }
