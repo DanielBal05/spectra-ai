@@ -343,6 +343,85 @@
       z-index:9999;
     }
 
+    .actionsPanel{
+      display:flex;
+      flex-direction:column;
+      gap:18px;
+      align-items:flex-start;
+      justify-content:flex-start;
+      padding-top:10px;
+    }
+
+    .bigActionBtn{
+      min-width:220px;
+      padding:16px 18px;
+      border-radius:16px;
+      border:2px solid #22304b;
+      background:#071026;
+      color:var(--text);
+      font-weight:800;
+      font-size:16px;
+      cursor:pointer;
+      transition:.18s ease;
+    }
+
+    .bigActionBtn:hover{
+      transform:translateY(-1px);
+      border-color:rgba(34,211,238,.45);
+      box-shadow:0 0 18px rgba(34,211,238,.12);
+    }
+
+    .modalOverlay{
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,.55);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      z-index:9998;
+      padding:20px;
+    }
+
+    .modalOverlay.show{
+      display:flex;
+    }
+
+    .modalCard{
+      width:min(100%, 520px);
+      background:var(--card);
+      border:1px solid var(--stroke);
+      border-radius:22px;
+      padding:18px;
+      box-shadow:0 20px 60px rgba(0,0,0,.45);
+      position:relative;
+    }
+
+    .modalTop{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom:10px;
+    }
+
+    .modalTop h3{
+      margin:0;
+      font-size:14px;
+      letter-spacing:.18em;
+      text-transform:uppercase;
+      color:var(--muted);
+    }
+
+    .modalClose{
+      border:1px solid #22304b;
+      background:#071026;
+      color:var(--text);
+      border-radius:12px;
+      padding:8px 12px;
+      cursor:pointer;
+      font-weight:700;
+    }
+
     @media (max-width: 980px){
       .grid{grid-template-columns:1fr}
       .item{grid-template-columns:1fr}
@@ -363,37 +442,23 @@
 
   <div class="grid">
     <div class="card">
-      <div class="cardHead">
-        <h3>Registrar préstamo</h3>
+      <h3>Registrar préstamo</h3>
+
+      <div class="actionsPanel">
         <a
-          class="downloadBtn"
+          class="bigActionBtn"
           href="/api/lab/descargar"
           target="_blank"
           rel="noopener noreferrer"
           title="Descargar última versión del Google Sheets"
+          style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center;"
         >
           ⬇ Descargar Sheets
         </a>
-      </div>
 
-      <label>Nombre</label>
-      <input id="nombre" type="text" placeholder="Ej: Juan Perez" autocomplete="name" />
-
-      <label>Semestre</label>
-      <select id="semestre">
-        <option value="">Selecciona...</option>
-        <option>1</option><option>2</option><option>3</option><option>4</option>
-        <option>5</option><option>6</option><option>7</option><option>8</option>
-      </select>
-
-      <label>Equipo</label>
-      <input id="equipo" type="text" placeholder="Ej: Osciloscopio" autocomplete="off" />
-
-      <button class="btn" id="btnRegistrar">Registrar</button>
-
-      <div class="hint">
-        Al registrarse, el estado inicial será <b>-</b>.<br/>
-        Cuando el admin entregue físicamente el equipo, deberá presionar <b>Entregado</b>.
+        <button class="bigActionBtn" id="btnOpenSolicitud" type="button">
+          Hacer Solicitud
+        </button>
       </div>
     </div>
 
@@ -421,6 +486,38 @@
     </div>
   </div>
 
+  <div class="modalOverlay" id="solicitudModal">
+    <div class="modalCard">
+      <div class="modalTop">
+        <h3>Registrar préstamo</h3>
+        <button class="modalClose" id="btnCloseSolicitud" type="button">✕ Cerrar</button>
+      </div>
+
+      <label>Nombre</label>
+      <input id="nombre" type="text" placeholder="Ej: Juan Perez" autocomplete="name" />
+
+      <label>Semestre</label>
+      <select id="semestre">
+        <option value="">Selecciona...</option>
+        <option>1</option><option>2</option><option>3</option><option>4</option>
+        <option>5</option><option>6</option><option>7</option><option>8</option>
+      </select>
+
+      <label>Equipo</label>
+      <input id="equipo" type="text" placeholder="Ej: Osciloscopio" autocomplete="off" />
+
+      <label>Extras</label>
+      <input id="extras" type="text" placeholder="Ej: Cables, puntas, resistencias..." autocomplete="off" />
+
+      <button class="btn" id="btnRegistrar">Registrar</button>
+
+      <div class="hint">
+        Al registrarse, el estado inicial será <b>-</b>.<br/>
+        Cuando el admin entregue físicamente el equipo, deberá presionar <b>Entregado</b>.
+      </div>
+    </div>
+  </div>
+
   <div class="toast" id="toast"></div>
 
 <script>
@@ -436,6 +533,14 @@
     t._timer = setTimeout(() => {
       t.style.display = "none";
     }, 3200);
+  }
+
+  function openSolicitudModal(){
+    $("solicitudModal")?.classList.add("show");
+  }
+
+  function closeSolicitudModal(){
+    $("solicitudModal")?.classList.remove("show");
   }
 
   async function preloadStudent(){
@@ -494,26 +599,26 @@
   }
 
   function normalizeItems(items){
-  return (items || []).map(x => ({
-    row_number: pick(x, ["row_number","rowNumber","#","Row"]),
-    ID: (pick(x, ["ID","Id","id","codigo","code","lab_id","labId","LAB_ID"]) ?? "").toString(),
-    Fecha: (pick(x, ["Fecha","fecha","created_at","createdAt","timestamp","time"]) ?? "").toString(),
-    Nombre: (pick(x, ["Nombre","nombre","name","estudiante","alumno"]) ?? "").toString(),
-    Semestre: (pick(x, ["Semestre","semestre","semester","nivel"]) ?? "").toString(),
-    Equipo: (pick(x, ["Equipo","equipo","item","material","dispositivo"]) ?? "").toString(),
-    Extras: (pick(x, ["Extras","extras","extra","extra_general"]) ?? "").toString(),
-    BannerID: (pick(x, ["BannerID","banner_id","bannerid","id_banner","banner"]) ?? "").toString(),
-    Estado: (pick(x, ["Prestado/ Devuelto","Prestado/Devuelto","prestado_devuelto","Estado","estado","status"]) ?? "").toString(),
-  }));
-}
+    return (items || []).map(x => ({
+      row_number: pick(x, ["row_number","rowNumber","#","Row"]),
+      ID: (pick(x, ["ID","Id","id","codigo","code","lab_id","labId","LAB_ID"]) ?? "").toString(),
+      Fecha: (pick(x, ["Fecha","fecha","created_at","createdAt","timestamp","time"]) ?? "").toString(),
+      Nombre: (pick(x, ["Nombre","nombre","name","estudiante","alumno"]) ?? "").toString(),
+      Semestre: (pick(x, ["Semestre","semestre","semester","nivel"]) ?? "").toString(),
+      Equipo: (pick(x, ["Equipo","equipo","item","material","dispositivo"]) ?? "").toString(),
+      Extras: (pick(x, ["Extras","extras","extra","extra_general"]) ?? "").toString(),
+      BannerID: (pick(x, ["BannerID","banner_id","bannerid","id_banner","banner"]) ?? "").toString(),
+      Estado: (pick(x, ["Prestado/ Devuelto","Prestado/Devuelto","prestado_devuelto","Estado","estado","status"]) ?? "").toString(),
+    }));
+  }
 
   function isBlankRow(it){
-  const hasId = it.ID && it.ID.trim().length > 0;
-  const hasName = it.Nombre && it.Nombre.trim().length > 0;
-  const hasEq = it.Equipo && it.Equipo.trim().length > 0;
-  const hasExtras = it.Extras && it.Extras.trim().length > 0;
-  return !(hasId || hasName || hasEq || hasExtras);
-}
+    const hasId = it.ID && it.ID.trim().length > 0;
+    const hasName = it.Nombre && it.Nombre.trim().length > 0;
+    const hasEq = it.Equipo && it.Equipo.trim().length > 0;
+    const hasExtras = it.Extras && it.Extras.trim().length > 0;
+    return !(hasId || hasName || hasEq || hasExtras);
+  }
 
   function stateKey(it){
     const e = (it.Estado || "").toString().trim().toLowerCase();
@@ -576,17 +681,12 @@
     let filtered = items.filter(it => !isBlankRow(it));
 
     if (filtro === "prestado") {
-  filtered = filtered.filter(it => stateKey(it) === "prestado");
-}
-
-else if (filtro === "entregables") {
-  filtered = filtered.filter(it => stateKey(it) === "pendiente"); 
-  // pendiente = estado "-"
-}
-
-else if (filtro === "devuelto") {
-  filtered = filtered.filter(it => stateKey(it) === "devuelto");
-}
+      filtered = filtered.filter(it => stateKey(it) === "prestado");
+    } else if (filtro === "entregables") {
+      filtered = filtered.filter(it => stateKey(it) === "pendiente");
+    } else if (filtro === "devuelto") {
+      filtered = filtered.filter(it => stateKey(it) === "devuelto");
+    }
 
     filtered.sort((a, b) => (b.Fecha || "").localeCompare(a.Fecha || ""));
     $("countPill").textContent = `${filtered.length} items`;
@@ -614,12 +714,12 @@ else if (filtro === "devuelto") {
       }
 
       const equipoChip = it.Equipo
-  ? `<span class="chip">Equipo: ${it.Equipo}</span>`
-  : "";
+        ? `<span class="chip">Equipo: ${it.Equipo}</span>`
+        : "";
 
-const extrasChip = it.Extras
-  ? `<span class="chip">Extras: ${it.Extras}</span>`
-  : "";
+      const extrasChip = it.Extras
+        ? `<span class="chip">Extras: ${it.Extras}</span>`
+        : "";
 
       const div = document.createElement("div");
       div.className = "item";
@@ -627,11 +727,11 @@ const extrasChip = it.Extras
       div.innerHTML = `
         <div>
           <div class="row1">
-  <div class="name">${it.Nombre || "(sin nombre)"}</div>
-  <span class="chip">Semestre: ${it.Semestre || "-"}</span>
-  ${equipoChip}
-  ${extrasChip}
-</div>
+            <div class="name">${it.Nombre || "(sin nombre)"}</div>
+            <span class="chip">Semestre: ${it.Semestre || "-"}</span>
+            ${equipoChip}
+            ${extrasChip}
+          </div>
           <div class="sub">
             <span>Fecha: ${formatFecha(it.Fecha)}</span>
             &nbsp;•&nbsp;
@@ -640,18 +740,18 @@ const extrasChip = it.Extras
         </div>
 
         <div class="actions">
-  ${
-    isPendiente
-      ? `<button class="btnSmall btnInfo" data-ent="${it.ID || ""}" ${it.ID ? "" : "disabled"}>Entregado</button>`
-      : `<button class="btnSmall btnOk" disabled>${isPrestado ? "✅ Entregado" : "✅ Procesado"}</button>`
-  }
+          ${
+            isPendiente
+              ? `<button class="btnSmall btnInfo" data-ent="${it.ID || ""}" ${it.ID ? "" : "disabled"}>Entregado</button>`
+              : `<button class="btnSmall btnOk" disabled>${isPrestado ? "✅ Entregado" : "✅ Procesado"}</button>`
+          }
 
-  ${
-    isDevuelto
-      ? `<button class="btnSmall btnOk" disabled>✅ Devuelto</button>`
-      : `<button class="btnSmall btnDanger" data-dev="${it.ID || ""}" ${it.ID ? "" : "disabled"}>Devolver</button>`
-  }
-</div>
+          ${
+            isDevuelto
+              ? `<button class="btnSmall btnOk" disabled>✅ Devuelto</button>`
+              : `<button class="btnSmall btnDanger" data-dev="${it.ID || ""}" ${it.ID ? "" : "disabled"}>Devolver</button>`
+          }
+        </div>
       `;
 
       list.appendChild(div);
@@ -662,7 +762,7 @@ const extrasChip = it.Extras
         const id = btn.getAttribute("data-ent") || "";
         if(!id) return toast("No hay ID para entregar ❌");
 
-        const ok = confirm(`¿Confirmar que este equipo fue ENTREGADO?\n\nID: ${id}\n\nEsto notificará al usuario y marcará el estado como PRESTADO.`);
+        const ok = confirm(`¿Confirmar que este equipo fue ENTREGADO?\n\nID: ${id}\n\nEsto marcará el estado como PRESTADO.`);
         if(!ok) return;
 
         btn.disabled = true;
@@ -680,7 +780,7 @@ const extrasChip = it.Extras
           if(!r.ok || j.ok === false){
             toast(j.error || j.msg || "Error marcando como entregado ❌");
           }else{
-            toast(j.msg || "Equipo entregado y notificación enviada ✅");
+            toast(j.msg || "Equipo entregado correctamente ✅");
             await load();
           }
         }catch(e){
@@ -770,13 +870,27 @@ const extrasChip = it.Extras
   $("btnRefresh").addEventListener("click", load);
   $("filtroEstado").addEventListener("change", load);
 
+  $("btnOpenSolicitud")?.addEventListener("click", openSolicitudModal);
+  $("btnCloseSolicitud")?.addEventListener("click", closeSolicitudModal);
+
+  $("solicitudModal")?.addEventListener("click", (e) => {
+    if (e.target.id === "solicitudModal") {
+      closeSolicitudModal();
+    }
+  });
+
   $("btnRegistrar").addEventListener("click", async () => {
     const nombre = $("nombre").value.trim();
     const semestre = $("semestre").value.trim();
     const equipo = $("equipo").value.trim();
+    const extras = $("extras").value.trim();
 
-    if(!nombre || !semestre || !equipo){
-      return toast("Completa Nombre, Semestre y Equipo ❗");
+    if(!nombre || !semestre){
+      return toast("Completa Nombre y Semestre ❗");
+    }
+
+    if(!equipo && !extras){
+      return toast("Debes ingresar Equipo o Extras ❗");
     }
 
     const banner_id = (SESSION.role === "student") ? (SESSION.banner_id || "") : "";
@@ -788,7 +902,13 @@ const extrasChip = it.Extras
       const r = await fetch("/api/lab/prestar", {
         method:"POST",
         headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify({ nombre, semestre, equipo, banner_id })
+        body: JSON.stringify({
+          nombre,
+          semestre,
+          equipo,
+          banner_id,
+          extra_general: extras
+        })
       });
 
       const j = await r.json().catch(() => ({}));
@@ -800,6 +920,8 @@ const extrasChip = it.Extras
         toast(id ? `Solicitud registrada ✅\nID: ${id}\nEstado inicial: -` : "Solicitud registrada ✅");
 
         $("equipo").value = "";
+        $("extras").value = "";
+        closeSolicitudModal();
         await load();
       }
     }catch(e){
@@ -810,7 +932,7 @@ const extrasChip = it.Extras
     }
   });
 
-  ["nombre", "equipo"].forEach(id => {
+  ["nombre", "equipo", "extras"].forEach(id => {
     $(id).addEventListener("keydown", (e) => {
       if(e.key === "Enter") $("btnRegistrar").click();
     });
