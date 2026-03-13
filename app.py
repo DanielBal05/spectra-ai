@@ -49,7 +49,7 @@ def template_test():
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev_secret_change_me")
 
 # ✅ password admin (mejor en variable de entorno)
-ADMIN_PASSWORD = os.environ.get("SPECTRA_ADMIN_PASSWORD", "admin123")
+ADMIN_BANNERS = {"A0001234"}  # Charles David Iza Casa
 
 # ✅ link de exportación del Google Sheet
 GOOGLE_SHEET_EXPORT_URL = os.environ.get(
@@ -359,7 +359,7 @@ def login_page():
 
     role = session.get("role")
     if role == "admin":
-        return redirect("/spectra")
+     return redirect("/app-spectra")
 
     if role == "student":
         return redirect(
@@ -381,15 +381,50 @@ def debug_login():
 @app.route("/auth/admin", methods=["POST"])
 def auth_admin():
     data = request.get_json(silent=True) or {}
-    password = (data.get("password") or "").strip()
 
-    if not password or password != ADMIN_PASSWORD:
-        return jsonify({"ok": False, "error": "Contraseña incorrecta ❌"}), 401
+    nombre = (data.get("nombre") or "").strip()
+    banner = (data.get("banner") or "").strip().upper()
+
+    if not nombre or not banner:
+        return jsonify({
+            "ok": False,
+            "error": "Completa Nombre e ID Banner ❗"
+        }), 400
+
+    if not re.match(r"^A\d+$", banner):
+        return jsonify({
+            "ok": False,
+            "error": "El ID Banner debe empezar con A y luego solo números ❗"
+        }), 400
+
+    student = find_student(banner)
+
+    if not student:
+        return jsonify({
+            "ok": False,
+            "error": "Este usuario no está registrado ❌"
+        }), 403
+
+    if banner not in ADMIN_BANNERS:
+        return jsonify({
+            "ok": False,
+            "error": "No tienes permisos de administrador ❌"
+        }), 403
+
+    if (student.get("nombre") or "").strip().lower() != nombre.lower():
+        return jsonify({
+            "ok": False,
+            "error": "El nombre no coincide con el usuario autorizado ❌"
+        }), 403
 
     session["role"] = "admin"
-    session["student_name"] = None
-    session["banner_id"] = None
-    return jsonify({"ok": True, "redirect": "/spectra"}), 200
+    session["student_name"] = student["nombre"]
+    session["banner_id"] = student["banner"]
+
+    return jsonify({
+        "ok": True,
+        "redirect": "/app-spectra"
+    }), 200
 
 @app.route("/auth/student", methods=["POST"])
 def auth_student():
@@ -1084,7 +1119,7 @@ def speaker_redirect():
 @app.route("/spectra")
 @require_role("admin")
 def spectra_redirect():
-    return redirect("/registro", code=302)
+    return redirect("/app-spectra", code=302)
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
