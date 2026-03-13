@@ -1,16 +1,21 @@
 from flask import Flask, render_template, request, jsonify, redirect, session, Response
 import traceback
 import requests
+import threading
 
 # ✅ Recordatorios (legacy)
 import os, json, uuid
 from datetime import datetime, timedelta
 import re
 from functools import wraps
-from urllib.parse import urlparse
+from urllib.parse import urlparse, unquote
+from auth_students import find_student
+from flask import request, jsonify, session
+
 
 # ✅ IMPORTANTE: apuntar templates a la carpeta actual (porque tus .html están en la raíz)
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = os.path.dirname(os.path.abspath(__file__)) 
+
 
 # Si algún día sí creas carpeta templates/, Flask la usa; si no, usa la raíz (BASE_DIR)
 TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")
@@ -18,6 +23,15 @@ if not os.path.isdir(TEMPLATES_DIR):
     TEMPLATES_DIR = BASE_DIR
 
 app = Flask(__name__, template_folder=TEMPLATES_DIR)
+
+def wake_n8n():
+    try:
+        requests.get(
+            "https://n8n-lab-automation.onrender.com",
+            timeout=8
+        )
+    except Exception as e:
+        print("No se pudo despertar n8n:", e)
 
 @app.route("/ping")
 def ping():
@@ -109,6 +123,7 @@ N8N_BASE = os.environ.get("N8N_BASE", "https://n8n-lab-automation.onrender.com")
 # - Si en n8n tu webhook real es /prestamo, deja prestamo
 # - Si fuera /prestar, cambia aquí
 N8N_PRESTAR = os.environ.get("N8N_PRESTAR", f"{N8N_BASE}/webhook/lab/prestamo")
+N8N_ENTREGAR = os.environ.get("N8N_ENTREGAR", f"{N8N_BASE}/webhook/lab-entregar")
 N8N_DEVOLVER = os.environ.get("N8N_DEVOLVER", f"{N8N_BASE}/webhook/lab/devolver")
 N8N_LISTAR = os.environ.get("N8N_LISTAR", f"{N8N_BASE}/webhook/lab/listar")
 
@@ -164,7 +179,17 @@ def _normalize_lab_ok_response(data):
 
 def _post_n8n_json(url, payload=None, timeout=30):
     payload = payload or {}
+
+    print("\n========== DEBUG _post_n8n_json ==========")
+    print("POST URL:", url)
+    print("PAYLOAD:", payload)
+
     r = requests.post(url, json=payload, timeout=timeout)
+
+    print("STATUS:", r.status_code)
+    print("TEXT:", (r.text or "")[:1000])
+    print("==========================================\n")
+
     data = _response_json_or_text(r)
     return r, data
 
@@ -172,6 +197,16 @@ def _get_n8n_json(url, timeout=30):
     r = requests.get(url, timeout=timeout)
     data = _response_json_or_text(r)
     return r, data
+
+def _pick_msg(data, default_msg):
+    if isinstance(data, dict):
+        return (
+            data.get("msg")
+            or data.get("message")
+            or data.get("detail")
+            or default_msg
+        )
+    return default_msg
 
 # =========================
 # ✅ (LEGACY) Recordatorios Flask (DB que lee tu pestaña /reminders)
@@ -318,6 +353,8 @@ def notifications_test():
 # =========================
 @app.route("/login")
 def login_page():
+    threading.Thread(target=wake_n8n, daemon=True).start()
+
     next_url = _safe_next_url(request.args.get("next"), default="/spectra")
 
     role = session.get("role")
@@ -357,17 +394,39 @@ def auth_admin():
 @app.route("/auth/student", methods=["POST"])
 def auth_student():
     data = request.get_json(silent=True) or {}
-    name = (data.get("name") or "").strip()
-    banner_id = (data.get("banner_id") or "").strip()
+
+    nombre = (data.get("nombre") or "").strip()
+    banner = (data.get("banner") or "").strip().upper()
     next_url = _safe_next_url(data.get("next"), default="/registro-estudiante")
 
-    if not name or not banner_id:
-        return jsonify({"ok": False, "error": "Faltan datos (Nombre/ID Banner) ❌"}), 400
+    if not nombre or not banner:
+        return jsonify({
+            "ok": False,
+            "error": "Faltan datos (Nombre/ID Banner) ❌"
+        }), 400
+
+    student = find_student(banner)
+
+    if not student:
+        return jsonify({
+            "ok": False,
+            "error": "Este estudiante no está registrado ❌"
+        }), 403
+
+    if (student.get("nombre") or "").strip().lower() != nombre.lower():
+        return jsonify({
+            "ok": False,
+            "error": "El nombre no coincide con el estudiante registrado ❌"
+        }), 403
 
     session["role"] = "student"
-    session["student_name"] = name
-    session["banner_id"] = banner_id
-    return jsonify({"ok": True, "redirect": next_url or "/registro-estudiante"}), 200
+    session["student_name"] = student["nombre"]
+    session["banner_id"] = student["banner"]
+
+    return jsonify({
+        "ok": True,
+        "redirect": next_url or "/registro-estudiante"
+    }), 200
 
 @app.route("/auth/logout", methods=["POST"])
 def auth_logout():
@@ -376,9 +435,17 @@ def auth_logout():
 
 @app.route("/whoami", methods=["GET"])
 def whoami():
+    role = session.get("role")
+
+    if not role:
+        return jsonify({
+            "ok": False,
+            "error": "No autenticado"
+        }), 401
+
     return jsonify({
         "ok": True,
-        "role": session.get("role"),
+        "role": role,
         "student_name": session.get("student_name"),
         "banner_id": session.get("banner_id"),
     }), 200
@@ -387,9 +454,18 @@ def whoami():
 # ✅ Páginas (protegidas)
 # =========================
 @app.route("/")
-@require_role("admin")
-def index():
-    return render_template("index.html")
+def home():
+    threading.Thread(target=wake_n8n, daemon=True).start()
+
+    role = session.get("role")
+
+    if role == "admin":
+        return redirect("/spectra")
+
+    if role == "student":
+        return redirect("/registro-estudiante")
+
+    return redirect("/login")
 
 @app.route("/reminders")
 @require_role("admin")
@@ -478,14 +554,18 @@ def api_lab_descargar():
             "ok": False,
             "error": f"api_lab_descargar error: {str(e)}"
         }), 500
-
 @app.route("/api/lab/prestar", methods=["POST"])
 @require_role("admin", "student")
 def api_lab_prestar():
     try:
         data = request.get_json(silent=True) or {}
 
+        print("\n========== DEBUG PRESTAR ==========")
+        print("JSON recibido:", data)
+
         role = session.get("role")
+        print("role:", role)
+
         if role == "student":
             nombre = (session.get("student_name") or "").strip()
             banner_id = (session.get("banner_id") or "").strip()
@@ -494,8 +574,14 @@ def api_lab_prestar():
             banner_id = (data.get("banner_id") or data.get("bannerId") or data.get("BannerID") or "").strip()
 
         semestre = (data.get("semestre") or "").strip()
-        equipo = (data.get("equipo") or "").strip()
-        extras = (data.get("extra_general") or "").strip()
+        equipo = unquote((data.get("equipo") or "").strip())
+        extras = (data.get("extra_general") or data.get("Extras") or "").strip()
+
+        print("nombre:", nombre)
+        print("banner_id:", banner_id)
+        print("semestre:", semestre)
+        print("equipo:", equipo)
+        print("extras:", extras)
 
         payload = {
             "nombre": nombre,
@@ -505,6 +591,10 @@ def api_lab_prestar():
             "Extras": extras
         }
 
+        print("payload enviado a n8n:", payload)
+        print("URL N8N:", N8N_PRESTAR)
+        print("====================================\n")
+
         if not nombre or not semestre:
             return jsonify({"ok": False, "error": "Faltan campos (nombre/semestre)"}), 400
 
@@ -512,6 +602,9 @@ def api_lab_prestar():
             return jsonify({"ok": False, "error": "Debes enviar equipo o extras"}), 400
 
         r, resp_data = _post_n8n_json(N8N_PRESTAR, payload=payload, timeout=30)
+
+        print("Respuesta status n8n:", r.status_code)
+        print("Respuesta n8n:", resp_data)
 
         if not r.ok:
             return jsonify({
@@ -523,9 +616,62 @@ def api_lab_prestar():
         return jsonify(resp_data), r.status_code
 
     except requests.exceptions.Timeout:
+        print("ERROR: Timeout llamando a n8n")
         return jsonify({"ok": False, "error": "Timeout llamando a n8n /prestamo"}), 504
+
     except Exception as e:
+        print("ERROR GENERAL:", str(e))
         return jsonify({"ok": False, "error": f"api_lab_prestar error: {str(e)}"}), 500
+
+@app.route("/api/lab/entregar", methods=["POST"])
+@require_role("admin")
+def api_lab_entregar():
+    try:
+        data = request.get_json(silent=True) or {}
+
+        print("\n========== DEBUG ENTREGAR ==========")
+        print("JSON recibido:", data)
+
+        item_id = (data.get("id") or data.get("ID") or data.get("codigo") or "").strip()
+
+        print("item_id detectado:", item_id)
+        print("URL N8N_ENTREGAR:", N8N_ENTREGAR)
+
+        if not item_id:
+            print("ERROR: falta id para entregar")
+            return jsonify({"ok": False, "error": "Falta id para entregar"}), 400
+
+        payload = {"id": item_id}
+        print("payload enviado a n8n:", payload)
+
+        r, resp_data = _post_n8n_json(N8N_ENTREGAR, payload=payload, timeout=30)
+
+        print("status n8n:", r.status_code)
+        print("respuesta n8n:", resp_data)
+        print("====================================\n")
+
+        if not r.ok:
+            return jsonify({
+                "ok": False,
+                "error": resp_data.get("error") or resp_data.get("message") or "Error en n8n /entregar",
+                "raw": resp_data
+            }), r.status_code
+
+        msg = _pick_msg(resp_data, "Equipo entregado correctamente ✅")
+
+        return jsonify({
+            "ok": True,
+            "msg": msg,
+            "id": item_id,
+            "data": resp_data
+        }), 200
+
+    except requests.exceptions.Timeout:
+        print("ERROR: Timeout llamando a n8n /entregar")
+        return jsonify({"ok": False, "error": "Timeout llamando a n8n /entregar"}), 504
+    except Exception as e:
+        print("ERROR GENERAL /api/lab/entregar:", str(e))
+        return jsonify({"ok": False, "error": f"api_lab_entregar error: {str(e)}"}), 500
 
 @app.route("/api/lab/devolver", methods=["POST"])
 @require_role("admin")
@@ -554,11 +700,7 @@ def api_lab_devolver():
                 "raw": resp_data
             }), r.status_code
 
-        msg = (
-            resp_data.get("msg")
-            or resp_data.get("message")
-            or "Devolución registrada ✅"
-        )
+        msg = _pick_msg(resp_data, "Devolución registrada ✅")
 
         return jsonify({
             "ok": True,
@@ -942,7 +1084,8 @@ def speaker_redirect():
 @app.route("/spectra")
 @require_role("admin")
 def spectra_redirect():
-    return redirect(f"{FASTAPI_BASE}/app-spectra", code=302)
+    return redirect(f"{FASTAPI_BASE}/spectra-lab-flask", code=302)
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
