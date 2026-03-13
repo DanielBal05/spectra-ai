@@ -40,7 +40,6 @@ body{
   overflow:hidden;
   position:relative;
 
-  /* Base Spectra-style (lo tuyo) */
   background:
     radial-gradient(1200px 600px at 15% 10%, rgba(34,211,238,.18), transparent 55%),
     radial-gradient(900px 500px at 85% 18%, rgba(168,85,247,.16), transparent 60%),
@@ -65,17 +64,14 @@ body::before{
   pointer-events:none;
 }
 
-/* ✅ 2) Grid holográfico + partículas (se combina con tu estilo) */
+/* ✅ 2) Grid holográfico + partículas */
 body::after{
   content:"";
   position:absolute;
   inset:0;
   background:
-    /* Grid */
     linear-gradient(to right, rgba(0,170,255,.085) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(0,170,255,.055) 1px, transparent 1px),
-
-    /* Partículas */
     radial-gradient(2px 2px at 20% 30%, rgba(255,255,255,.22), transparent 55%),
     radial-gradient(2px 2px at 70% 20%, rgba(255,255,255,.16), transparent 55%),
     radial-gradient(2px 2px at 40% 80%, rgba(255,255,255,.12), transparent 55%),
@@ -383,13 +379,13 @@ input:focus{
 
         <button class="btn submit" onclick="loginStudent()">Entrar</button>
 
-<!-- BOTON NUEVO REGISTRO -->
-<button class="btn" onclick="window.location.href='/registro-estudiante'">
-Registrar Estudiante
-</button>
+        <button class="btn" onclick="window.location.href='/registro-estudiante'">
+          Registrar Estudiante
+        </button>
 
-<button class="btn secondary" onclick="goBack()">Volver</button>
-<div class="error" id="studentError"></div>
+        <button class="btn secondary" onclick="goBack()">Volver</button>
+        <div class="error" id="studentError"></div>
+      </div>
 
     </div>
   </div>
@@ -397,12 +393,18 @@ Registrar Estudiante
 <script>
 function showAdmin(){
   document.getElementById("roleSelector").style.display = "none";
+  document.getElementById("studentForm").style.display = "none";
   document.getElementById("adminForm").style.display = "block";
+  document.getElementById("adminError").textContent = "";
+  document.getElementById("studentError").textContent = "";
 }
 
 function showStudent(){
   document.getElementById("roleSelector").style.display = "none";
+  document.getElementById("adminForm").style.display = "none";
   document.getElementById("studentForm").style.display = "block";
+  document.getElementById("adminError").textContent = "";
+  document.getElementById("studentError").textContent = "";
 }
 
 function goBack(){
@@ -449,11 +451,18 @@ async function loginAdmin(){
 
 async function loginStudent(){
   const name = document.getElementById("studentName").value.trim();
-  const banner_id = document.getElementById("studentBanner").value.trim();
+  const banner_id = document.getElementById("studentBanner").value.trim().toUpperCase();
   const next = getNext() || "/registro-estudiante";
+
+  document.getElementById("studentError").textContent = "";
 
   if(!name || !banner_id){
     document.getElementById("studentError").textContent = "Completa Nombre e ID Banner ❗";
+    return;
+  }
+
+  if(!/^A\\d+$/.test(banner_id)){
+    document.getElementById("studentError").textContent = "El ID Banner debe empezar con A y luego solo números ❗";
     return;
   }
 
@@ -462,10 +471,10 @@ async function loginStudent(){
       method: "POST",
       headers: {"Content-Type": "application/json"},
       body: JSON.stringify({
-  nombre: name,
-  banner: banner_id,
-  next
-})
+        nombre: name,
+        banner: banner_id,
+        next
+      })
     });
 
     const j = await r.json().catch(() => ({}));
