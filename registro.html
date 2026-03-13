@@ -494,24 +494,26 @@
   }
 
   function normalizeItems(items){
-    return (items || []).map(x => ({
-      row_number: pick(x, ["row_number","rowNumber","#","Row"]),
-      ID: (pick(x, ["ID","Id","id","codigo","code","lab_id","labId","LAB_ID"]) ?? "").toString(),
-      Fecha: (pick(x, ["Fecha","fecha","created_at","createdAt","timestamp","time"]) ?? "").toString(),
-      Nombre: (pick(x, ["Nombre","nombre","name","estudiante","alumno"]) ?? "").toString(),
-      Semestre: (pick(x, ["Semestre","semestre","semester","nivel"]) ?? "").toString(),
-      Equipo: (pick(x, ["Equipo","equipo","item","material","dispositivo"]) ?? "").toString(),
-      BannerID: (pick(x, ["BannerID","banner_id","bannerid","id_banner","banner"]) ?? "").toString(),
-      Estado: (pick(x, ["Prestado/ Devuelto","Prestado/Devuelto","prestado_devuelto","Estado","estado","status"]) ?? "").toString(),
-    }));
-  }
+  return (items || []).map(x => ({
+    row_number: pick(x, ["row_number","rowNumber","#","Row"]),
+    ID: (pick(x, ["ID","Id","id","codigo","code","lab_id","labId","LAB_ID"]) ?? "").toString(),
+    Fecha: (pick(x, ["Fecha","fecha","created_at","createdAt","timestamp","time"]) ?? "").toString(),
+    Nombre: (pick(x, ["Nombre","nombre","name","estudiante","alumno"]) ?? "").toString(),
+    Semestre: (pick(x, ["Semestre","semestre","semester","nivel"]) ?? "").toString(),
+    Equipo: (pick(x, ["Equipo","equipo","item","material","dispositivo"]) ?? "").toString(),
+    Extras: (pick(x, ["Extras","extras","extra","extra_general"]) ?? "").toString(),
+    BannerID: (pick(x, ["BannerID","banner_id","bannerid","id_banner","banner"]) ?? "").toString(),
+    Estado: (pick(x, ["Prestado/ Devuelto","Prestado/Devuelto","prestado_devuelto","Estado","estado","status"]) ?? "").toString(),
+  }));
+}
 
   function isBlankRow(it){
-    const hasId = it.ID && it.ID.trim().length > 0;
-    const hasName = it.Nombre && it.Nombre.trim().length > 0;
-    const hasEq = it.Equipo && it.Equipo.trim().length > 0;
-    return !(hasId || hasName || hasEq);
-  }
+  const hasId = it.ID && it.ID.trim().length > 0;
+  const hasName = it.Nombre && it.Nombre.trim().length > 0;
+  const hasEq = it.Equipo && it.Equipo.trim().length > 0;
+  const hasExtras = it.Extras && it.Extras.trim().length > 0;
+  return !(hasId || hasName || hasEq || hasExtras);
+}
 
   function stateKey(it){
     const e = (it.Estado || "").toString().trim().toLowerCase();
@@ -611,7 +613,8 @@ else if (filtro === "devuelto") {
         statusText = "Devuelto";
       }
 
-      const bannerChip = it.BannerID ? `<span class="chip">Banner: ${it.BannerID}</span>` : "";
+      const itemChipValue = it.Equipo || it.Extras || "-";
+const itemChipLabel = it.Equipo ? "Equipo" : (it.Extras ? "Extras" : "Equipo");
 
       const div = document.createElement("div");
       div.className = "item";
@@ -619,12 +622,10 @@ else if (filtro === "devuelto") {
       div.innerHTML = `
         <div>
           <div class="row1">
-            <div class="name">${it.Nombre || "(sin nombre)"}</div>
-            <span class="chip">Semestre: ${it.Semestre || "-"}</span>
-            <span class="chip">Equipo: ${it.Equipo || "-"}</span>
-            ${bannerChip}
-            <span class="chip">ID: ${it.ID || "-"}</span>
-          </div>
+  <div class="name">${it.Nombre || "(sin nombre)"}</div>
+  <span class="chip">Semestre: ${it.Semestre || "-"}</span>
+  <span class="chip">${itemChipLabel}: ${itemChipValue}</span>
+</div>
           <div class="sub">
             <span>Fecha: ${formatFecha(it.Fecha)}</span>
             &nbsp;•&nbsp;
