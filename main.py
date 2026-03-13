@@ -150,7 +150,7 @@ app.add_middleware(
 # ==========================
 # ====== ADMINS AUTORIZADOS ======
 # ==========================
-ADMIN_BANNERS = {"A0001234"}  # Charles David Iza Casa
+
 # ==========================
 # ====== CONFIG OLLAMA ======
 # ==========================
@@ -2402,9 +2402,7 @@ class LabDevolverReq(BaseModel):
     id: Optional[str] = None
     row_number: Optional[int] = None
 
-class AdminLoginReq(BaseModel):
-    nombre: str
-    banner: str
+
 
 
 # ===============================
@@ -2615,55 +2613,6 @@ def health_ollama():
     except Exception as e:
         return {"ok": True, "ollama": False, "ollama_host": OLLAMA_HOST, "ollama_port": OLLAMA_PORT, "error": str(e)}
 
-
-# ===============================
-# ✅ ADMIN LOGIN FASTAPI
-# ===============================
-@app.get("/admin-login", response_class=HTMLResponse)
-def admin_login_page():
-    html_path = os.path.join(BASE_DIR, "admin_login.html")
-    if not os.path.exists(html_path):
-        return HTMLResponse("<h2>No existe admin_login.html</h2>", status_code=404)
-    with open(html_path, "r", encoding="utf-8") as f:
-        return f.read()
-
-
-@app.post("/auth/admin")
-def auth_admin(data: AdminLoginReq, request: Request):
-    nombre = (data.nombre or "").strip()
-    banner = (data.banner or "").strip().upper()
-
-    if not nombre or not banner:
-        return {"ok": False, "error": "Faltan datos"}
-
-    if banner not in ADMIN_BANNERS:
-        request.session.clear()
-        return {"ok": False, "error": "No autorizado como admin"}
-
-    request.session["role"] = "admin"
-    request.session["student_name"] = nombre
-    request.session["banner_id"] = banner
-
-    return {"ok": True, "redirect": "/app-spectra"}
-
-
-@app.get("/whoami-admin")
-def whoami_admin(request: Request):
-    role = request.session.get("role")
-    if role != "admin":
-        return {"ok": False}
-    return {
-        "ok": True,
-        "role": request.session.get("role"),
-        "student_name": request.session.get("student_name"),
-        "banner_id": request.session.get("banner_id"),
-    }
-
-
-@app.post("/auth/admin-logout")
-def auth_admin_logout(request: Request):
-    request.session.clear()
-    return {"ok": True}
 
 # ===============================
 # ✅ Root
