@@ -344,19 +344,28 @@ input:focus{
       </div>
 
       <div class="form" id="adminForm">
-        <label>Contraseña</label>
-        <div class="field">
-          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M7 11V8a5 5 0 0 1 10 0v3"/>
-            <path d="M6 11h12v10H6z"/>
-          </svg>
-          <input type="password" id="adminPassword" placeholder="Ingrese contraseña" />
-        </div>
+  <label>Nombre</label>
+  <div class="field">
+    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M20 21a8 8 0 0 0-16 0"/>
+      <path d="M12 11a4 4 0 1 0-4-4 4 4 0 0 0 4 4z"/>
+    </svg>
+    <input type="text" id="adminName" placeholder="Tu nombre" />
+  </div>
 
-        <button class="btn submit" onclick="loginAdmin()">Entrar</button>
-        <button class="btn secondary" onclick="goBack()">Volver</button>
-        <div class="error" id="adminError"></div>
-      </div>
+  <label>ID Banner</label>
+  <div class="field">
+    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 7h16M4 12h16M4 17h10"/>
+      <path d="M4 5h16v14H4z"/>
+    </svg>
+    <input type="text" id="adminBanner" placeholder="A00123456" />
+  </div>
+
+  <button class="btn submit" onclick="loginAdmin()">Entrar</button>
+  <button class="btn secondary" onclick="goBack()">Volver</button>
+  <div class="error" id="adminError"></div>
+</div>
 
       <div class="form" id="studentForm">
         <label>Nombre</label>
@@ -421,11 +430,18 @@ function getNext(){
 }
 
 async function loginAdmin(){
-  const password = document.getElementById("adminPassword").value.trim();
-  const next = getNext();
+  const nombre = document.getElementById("adminName").value.trim();
+  const banner = document.getElementById("adminBanner").value.trim().toUpperCase();
 
-  if(!password){
-    document.getElementById("adminError").textContent = "Ingresa la contraseña ❗";
+  document.getElementById("adminError").textContent = "";
+
+  if(!nombre || !banner){
+    document.getElementById("adminError").textContent = "Completa Nombre e ID Banner ❗";
+    return;
+  }
+
+  if(!/^A\d+$/.test(banner)){
+    document.getElementById("adminError").textContent = "El ID Banner debe empezar con A y luego solo números ❗";
     return;
   }
 
@@ -433,22 +449,25 @@ async function loginAdmin(){
     const r = await fetch("/auth/admin", {
       method: "POST",
       headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({ password, next })
+      body: JSON.stringify({
+        nombre,
+        banner
+      })
     });
 
     const j = await r.json().catch(() => ({}));
 
-    if(!r.ok){
-      document.getElementById("adminError").textContent = j.error || "Error al iniciar sesión ❌";
+    if(!r.ok || !j.ok){
+      document.getElementById("adminError").textContent =
+        j.error || "No tienes permisos de administrador ❌";
       return;
     }
 
-    window.location.href = j.redirect || "/";
+    window.location.href = j.redirect || "/app-spectra";
   }catch(e){
     document.getElementById("adminError").textContent = "Error de red ❌";
   }
 }
-
 async function loginStudent(){
   const name = document.getElementById("studentName").value.trim();
   const banner_id = document.getElementById("studentBanner").value.trim().toUpperCase();
