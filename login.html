@@ -382,9 +382,14 @@ input:focus{
         </div>
 
         <button class="btn submit" onclick="loginStudent()">Entrar</button>
-        <button class="btn secondary" onclick="goBack()">Volver</button>
-        <div class="error" id="studentError"></div>
-      </div>
+
+<!-- BOTON NUEVO REGISTRO -->
+<button class="btn" onclick="window.location.href='/registro-estudiante'">
+Registrar Estudiante
+</button>
+
+<button class="btn secondary" onclick="goBack()">Volver</button>
+<div class="error" id="studentError"></div>
 
     </div>
   </div>
@@ -456,7 +461,11 @@ async function loginStudent(){
     const r = await fetch("/auth/student", {
       method: "POST",
       headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({ name, banner_id, next })
+      body: JSON.stringify({
+  nombre: name,
+  banner: banner_id,
+  next
+})
     });
 
     const j = await r.json().catch(() => ({}));
