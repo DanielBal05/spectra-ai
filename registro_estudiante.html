@@ -527,33 +527,50 @@
     toast("Nuevo espacio de equipo creado ✅");
   }
 
-  function applyIncomingEquipoFromURL(){
-    const equipoSeleccionado = getEquipoFromURL();
-    if(!equipoSeleccionado) return;
+function applyIncomingEquipoFromURL(){
 
-    if(!equiposPedido.length){
-      equiposPedido = [""];
-    }
+  const equipoSeleccionado = getEquipoFromURL();
+  if(!equipoSeleccionado) return;
 
-    // Caso ideal: llenar el primer espacio vacío
-    const filled = fillFirstEmptySlot(equipoSeleccionado);
+  const targetSlot = sessionStorage.getItem("spectra_target_slot");
 
-    if(filled){
+  // Si venimos del botón +, guardar en el slot creado
+  if(targetSlot !== null){
+    const idx = parseInt(targetSlot,10);
+
+    if(!Number.isNaN(idx) && equiposPedido[idx] !== undefined){
+      equiposPedido[idx] = equipoSeleccionado;
+      sessionStorage.removeItem("spectra_target_slot");
+
       saveState();
       syncMainFields();
       renderEquiposList();
       clearEquipoQueryOnly();
-      toast(`Equipo seleccionado ✅\n${equipoSeleccionado}`);
+
+      toast(`Equipo agregado ✅\n${equipoSeleccionado}`);
       return;
     }
-
-    // Si no hay espacio vacío, NO crear otro automáticamente.
-    // Lo dejamos pendiente hasta que el usuario presione +
-    sessionStorage.setItem(PENDING_KEY, equipoSeleccionado);
-    clearEquipoQueryOnly();
-    toast(`Ya no hay espacio vacío.\nPresiona + y se agregará:\n${equipoSeleccionado}`);
   }
 
+  // comportamiento normal (primer espacio vacío)
+  const filled = fillFirstEmptySlot(equipoSeleccionado);
+
+  if(filled){
+    saveState();
+    syncMainFields();
+    renderEquiposList();
+    clearEquipoQueryOnly();
+
+    toast(`Equipo seleccionado ✅\n${equipoSeleccionado}`);
+    return;
+  }
+
+  // si no hay espacio
+  sessionStorage.setItem(PENDING_KEY, equipoSeleccionado);
+  clearEquipoQueryOnly();
+
+  toast(`Ya no hay espacio vacío.\nPresiona + y se agregará:\n${equipoSeleccionado}`);
+}
   async function loadSession(){
     try{
       const r = await fetchWithTimeout("/whoami", { cache:"no-store" }, 12000);
@@ -585,7 +602,21 @@
     window.location.href = SHAREPOINT_INVENTARIO_URL;
   });
 
-  $("btnAddEquipo").addEventListener("click", addNuevoEspacioEquipo);
+ $("btnAddEquipo").addEventListener("click", () => {
+
+  // Crear el nuevo espacio de equipo
+  addNuevoEspacioEquipo();
+
+  // Guardar estado actual antes de ir a inventario
+  saveState();
+
+  // Marcar que el siguiente equipo debe ir al último espacio creado
+  sessionStorage.setItem("spectra_target_slot", equiposPedido.length - 1);
+
+  // Abrir inventario automáticamente
+  window.location.href = SHAREPOINT_INVENTARIO_URL;
+
+});
 
   $("semestre").addEventListener("change", ()=>{
     semestreState = $("semestre").value || "";
