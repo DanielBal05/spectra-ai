@@ -1084,8 +1084,7 @@ def speaker_redirect():
 @app.route("/spectra")
 @require_role("admin")
 def spectra_redirect():
-    return redirect(f"{FASTAPI_BASE}/spectra-lab-flask", code=302)
-
+    return redirect("/registro", code=302)
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
