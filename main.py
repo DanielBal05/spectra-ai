@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException, UploadFile, File, WebSocket, WebSock
 from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
 from pydantic import BaseModel
 from fastapi.middleware.wsgi import WSGIMiddleware
+from auth_students import router as student_router
 
 import sys
 import os
@@ -3264,7 +3265,7 @@ def api_lab_entregar_fastapi(payload: LabEntregarReq):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-
+app.include_router(student_router)
 
 # ===============================
 # Montar Flask (login antiguo)
