@@ -415,10 +415,11 @@ async function registrar(){
     return;
   }
 
-  if(!/^A\\d+$/.test(banner)){
-    error.textContent = "El ID Banner debe empezar con A y luego solo números. Ej: A00123456";
-    return;
-  }
+ if(!/^A\d+$/.test(banner)){
+  document.getElementById("studentError").textContent =
+  "El ID Banner debe empezar con A y luego solo números ❗";
+  return;
+}
 
   try{
     const r = await fetch("/registro-estudiante", {
