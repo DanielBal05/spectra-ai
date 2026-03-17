@@ -676,7 +676,11 @@ def api_lab_entregar():
             print("ERROR: falta id para entregar")
             return jsonify({"ok": False, "error": "Falta id para entregar"}), 400
 
-        payload = {"id": item_id}
+        admin_name = (data.get("admin_name") or session.get("student_name") or "").strip()
+        payload = {
+    "id": item_id,
+    "admin_name": admin_name
+}
         print("payload enviado a n8n:", payload)
 
         r, resp_data = _post_n8n_json(N8N_ENTREGAR, payload=payload, timeout=30)
@@ -716,11 +720,14 @@ def api_lab_devolver():
 
         item_id = (data.get("id") or data.get("ID") or data.get("codigo") or "").strip()
         row_number = data.get("row_number") or data.get("rowNumber")
+        admin_name = (data.get("admin_name") or session.get("student_name") or "").strip()
 
         if not item_id and not row_number:
             return jsonify({"ok": False, "error": "Falta id o row_number para devolver"}), 400
 
-        payload = {}
+        payload = {
+            "admin_name": admin_name
+        }
         if item_id:
             payload["id"] = item_id
         if row_number:
