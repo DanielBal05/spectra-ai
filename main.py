@@ -3235,6 +3235,12 @@ def api_lab_listar_fastapi():
         r = requests.get(N8N_LISTAR, timeout=30)
 
         raw_text = r.text or ""
+        
+        print("========== DEBUG /api/lab/listar ==========")
+        print("URL N8N_LISTAR:", N8N_LISTAR)
+        print("STATUS:", r.status_code)
+        print("RAW:", raw_text[:1000])
+        print("===========================================")
 
         try:
             data = r.json()
