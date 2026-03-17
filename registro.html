@@ -434,9 +434,7 @@
     <div class="title">Registro de préstamos</div>
     <div class="topRight">
       <span class="pillTop" id="whoPill">Estudiante: — | Banner: —</span>
-      <a class="linkBtn" href="/">← Volver a Spectra</a>
-      <a class="linkBtn" href="/reminders">⏰ Recordatorios</a>
-      <a class="linkBtn" href="/login">🔐 Cambiar usuario</a>
+      <button class="linkBtn" id="btnLogout">🚪 Cerrar sesión</button>
     </div>
   </div>
 
@@ -967,6 +965,29 @@ if(isPrestado){
   (async () => {
     await preloadStudent();
     await load();
+
+$("btnLogout")?.addEventListener("click", async () => {
+  const ok = confirm("¿Cerrar sesión y volver al login?");
+  if (!ok) return;
+
+  try {
+    const r = await fetch("/auth/logout", {
+      method: "POST"
+    });
+
+    const j = await r.json().catch(() => ({}));
+
+    if (!r.ok || j.ok === false) {
+      return toast("No se pudo cerrar sesión ❌");
+    }
+
+    window.location.href = j.redirect || "/login";
+  } catch (e) {
+    toast("Error cerrando sesión ❌");
+  }
+});
+  
+
   })();
 </script>
 </body>
