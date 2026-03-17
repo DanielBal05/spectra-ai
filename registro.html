@@ -564,9 +564,9 @@
           nameInput.value = SESSION.student_name;
         }
       } else if (SESSION.role === "admin"){
-        pill.textContent = "Admin activo ✅";
-        pill.style.display = "inline-flex";
-      }
+  pill.textContent = `Admin: ${SESSION.student_name || "—"} ✅`;
+  pill.style.display = "inline-flex";
+}
     }catch(e){
       console.error("Error cargando sesión:", e);
     }
@@ -609,6 +609,8 @@
       Extras: (pick(x, ["Extras","extras","extra","extra_general"]) ?? "").toString(),
       BannerID: (pick(x, ["BannerID","banner_id","bannerid","id_banner","banner"]) ?? "").toString(),
       Estado: (pick(x, ["Prestado/ Devuelto","Prestado/Devuelto","prestado_devuelto","Estado","estado","status"]) ?? "").toString(),
+      EntregadoPor: (pick(x, ["EntregadoPor","entregado_por","PrestadoPor","prestado_por"]) ?? "").toString(),
+      DevueltoPor: (pick(x, ["DevueltoPor","devuelto_por"]) ?? "").toString(),
     }));
   }
 
@@ -698,20 +700,28 @@
 
     for(const it of filtered){
       const st = stateKey(it);
-      const isPendiente = st === "pendiente";
-      const isPrestado = st === "prestado";
-      const isDevuelto = st === "devuelto";
+const isPendiente = st === "pendiente";
+const isPrestado = st === "prestado";
+const isDevuelto = st === "devuelto";
 
-      let statusClass = "statusPendiente";
-      let statusText = "-";
+let statusClass = "statusPendiente";
+let statusText = "-";
 
-      if(isPrestado){
-        statusClass = "statusPrestado";
-        statusText = "Prestado";
-      }else if(isDevuelto){
-        statusClass = "statusDevuelto";
-        statusText = "Devuelto";
-      }
+// 👇 NUEVO: leer quién hizo la acción
+const entregadoPor = it.EntregadoPor || "";
+const devueltoPor = it.DevueltoPor || "";
+
+if(isPrestado){
+  statusClass = "statusPrestado";
+  statusText = entregadoPor 
+    ? `Prestado por ${entregadoPor}` 
+    : "Prestado";
+}else if(isDevuelto){
+  statusClass = "statusDevuelto";
+  statusText = devueltoPor 
+    ? `Devuelto por ${devueltoPor}` 
+    : "Devuelto";
+}
 
       const equipoChip = it.Equipo
         ? `<span class="chip">Equipo: ${it.Equipo}</span>`
