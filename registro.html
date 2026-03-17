@@ -853,9 +853,15 @@
       }
 
       if(!r.ok){
-        list.innerHTML = `<div class="empty">No se pudo cargar la lista.</div>`;
-        return toast(payload.error || payload.msg || `Error listando (${r.status}) ❌`);
-      }
+  console.error("Error /api/lab/listar:", payload);
+  list.innerHTML = `<div class="empty">No se pudo cargar la lista.</div>`;
+  return toast(
+    payload.error ||
+    payload.detail ||
+    payload.msg ||
+    `Error listando (${r.status}) ❌`
+  );
+}
 
       const extracted = extractItems(payload);
       const normalized = normalizeItems(extracted);
