@@ -3233,9 +3233,69 @@ def delete_task_proxy(task_id: str):
 def api_lab_listar_fastapi():
     try:
         r = requests.get(N8N_LISTAR, timeout=30)
-        return r.json()
+
+        raw_text = r.text or ""
+
+        try:
+            data = r.json()
+        except Exception:
+            raise HTTPException(
+                status_code=502,
+                detail=f"n8n no devolvió JSON válido. Respuesta: {raw_text[:500]}"
+            )
+
+        if not r.ok:
+            if isinstance(data, dict):
+                msg = data.get("error") or data.get("message") or data.get("msg") or f"Error HTTP {r.status_code}"
+            else:
+                msg = f"Error HTTP {r.status_code}"
+
+            raise HTTPException(status_code=r.status_code, detail=msg)
+
+        if isinstance(data, list):
+            return {
+                "ok": True,
+                "items": data,
+                "count": len(data)
+            }
+
+        if isinstance(data, dict):
+            if isinstance(data.get("items"), list):
+                return {
+                    "ok": True,
+                    "items": data["items"],
+                    "count": len(data["items"])
+                }
+
+            if isinstance(data.get("data"), list):
+                return {
+                    "ok": True,
+                    "items": data["data"],
+                    "count": len(data["data"])
+                }
+
+            if isinstance(data.get("rows"), list):
+                return {
+                    "ok": True,
+                    "items": data["rows"],
+                    "count": len(data["rows"])
+                }
+
+            return {
+                "ok": True,
+                "items": [],
+                "count": 0,
+                "raw": data
+            }
+
+        raise HTTPException(status_code=502, detail="Formato inesperado desde n8n")
+
+    except requests.exceptions.Timeout:
+        raise HTTPException(status_code=504, detail="Timeout llamando a n8n /listar")
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"Error interno listando: {str(e)}")
 
 @app.post("/api/lab/entregar")
 def api_lab_entregar_fastapi(payload: LabEntregarReq):
