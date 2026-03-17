@@ -2397,10 +2397,12 @@ class LabPrestarReq(BaseModel):
 
 class LabEntregarReq(BaseModel):
     id: str
+    admin_name: Optional[str] = None
 
 class LabDevolverReq(BaseModel):
     id: Optional[str] = None
     row_number: Optional[int] = None
+    admin_name: Optional[str] = None
 
 
 
@@ -3235,7 +3237,7 @@ def api_lab_listar_fastapi():
         r = requests.get(N8N_LISTAR, timeout=30)
 
         raw_text = r.text or ""
-        
+
         print("========== DEBUG /api/lab/listar ==========")
         print("URL N8N_LISTAR:", N8N_LISTAR)
         print("STATUS:", r.status_code)
@@ -3306,7 +3308,10 @@ def api_lab_listar_fastapi():
 @app.post("/api/lab/entregar")
 def api_lab_entregar_fastapi(payload: LabEntregarReq):
     try:
-        body = {"id": payload.id}
+        body = {
+            "id": payload.id,
+            "admin_name": (payload.admin_name or "").strip()
+        }
 
         print("\n========== DEBUG FASTAPI ENTREGAR ==========")
         print("payload recibido:", payload.model_dump())
@@ -3339,6 +3344,48 @@ def api_lab_entregar_fastapi(payload: LabEntregarReq):
 
     except requests.exceptions.Timeout:
         raise HTTPException(status_code=504, detail="Timeout llamando a n8n /entregar")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/lab/devolver")
+def api_lab_devolver_fastapi(payload: LabDevolverReq):
+    try:
+        body = {
+            "admin_name": (payload.admin_name or "").strip()
+        }
+
+        if payload.id:
+            body["id"] = payload.id
+        if payload.row_number is not None:
+            body["row_number"] = payload.row_number
+
+        print("\n========== DEBUG FASTAPI DEVOLVER ==========")
+        print("payload recibido:", payload.model_dump())
+        print("body enviado a n8n:", body)
+        print("URL N8N_DEVOLVER:", N8N_DEVOLVER)
+        print("============================================\n")
+
+        r = requests.post(N8N_DEVOLVER, json=body, timeout=30)
+
+        try:
+            data = r.json()
+        except Exception:
+            data = {"raw": (r.text or "")[:1000]}
+
+        print("STATUS N8N:", r.status_code)
+        print("RESPUESTA N8N:", data)
+
+        if not r.ok:
+            raise HTTPException(status_code=r.status_code, detail=data)
+
+        return {
+            "ok": True,
+            "msg": data.get("msg") or data.get("message") or "Devolución registrada ✅",
+            "data": data
+        }
+
+    except requests.exceptions.Timeout:
+        raise HTTPException(status_code=504, detail="Timeout llamando a n8n /devolver")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
