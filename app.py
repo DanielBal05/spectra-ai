@@ -422,9 +422,9 @@ def auth_admin():
     session["banner_id"] = student["banner"]
 
     return jsonify({
-        "ok": True,
-        "redirect": "/app-spectra"
-    }), 200
+    "ok": True,
+    "redirect": "/registro"
+}), 200
 
 @app.route("/auth/student", methods=["POST"])
 def auth_student():
