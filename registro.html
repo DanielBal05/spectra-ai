@@ -782,7 +782,10 @@ if(isPrestado){
           const r = await fetch("/api/lab/entregar", {
             method:"POST",
             headers:{ "Content-Type":"application/json" },
-            body: JSON.stringify({ id })
+            body: JSON.stringify({
+  id,
+  admin_name: SESSION.student_name || ""
+})
           });
 
           const j = await r.json().catch(() => ({}));
@@ -817,7 +820,10 @@ if(isPrestado){
           const r = await fetch("/api/lab/devolver", {
             method:"POST",
             headers:{ "Content-Type":"application/json" },
-            body: JSON.stringify({ id })
+            body: JSON.stringify({
+  id,
+  admin_name: SESSION.student_name || ""
+})
           });
 
           const j = await r.json().catch(() => ({}));
