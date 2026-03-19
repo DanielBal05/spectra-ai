@@ -54,7 +54,7 @@ ADMIN_BANNERS = {
     "A0001234",  # Charles David Iza Casa
     "A00121179",  # Cristopher
     "A00124272",  # Paul
-    "A00122997",  # Majo
+    "A00122996",  # Majo
     "A00129824",  # Samuel
 }
 
