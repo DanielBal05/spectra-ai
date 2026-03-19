@@ -50,6 +50,13 @@ app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev_secret_change_me")
 
 # ✅ password admin (mejor en variable de entorno)
 ADMIN_BANNERS = {"A0001234"}  # Charles David Iza Casa
+ADMIN_BANNERS = {
+    "A0001234",  # Charles David Iza Casa
+    "A00121179",  # Cristopher
+    "A00124272",  # Paul
+    "A00122997",  # Majo
+    "A00129824",  # Samuel
+}
 
 # ✅ link de exportación del Google Sheet
 GOOGLE_SHEET_EXPORT_URL = os.environ.get(
