@@ -1,3 +1,8 @@
+# ======================================================================================================
+# Pestaña gestionar la autenticación, controlar la lógica de negocio, y orquestar la comunicación 
+# entre los servicios externos como n8n y el motor de IA implementado en FastAPI.”
+# =====================================================================================================
+
 from flask import Flask, render_template, request, jsonify, redirect, session, Response
 import traceback
 import requests
@@ -50,13 +55,6 @@ app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev_secret_change_me")
 
 # ✅ password admin (mejor en variable de entorno)
 ADMIN_BANNERS = {"A0001234"}  # Charles David Iza Casa
-ADMIN_BANNERS = {
-    "A0001234",  # Charles David Iza Casa
-    "A00121179",  # Cristopher
-    "A00124272",  # Paul
-    "A00122996",  # Majo
-    "A00129824",  # Samuel
-}
 
 # ✅ link de exportación del Google Sheet
 GOOGLE_SHEET_EXPORT_URL = os.environ.get(
@@ -133,10 +131,29 @@ N8N_PRESTAR = os.environ.get("N8N_PRESTAR", f"{N8N_BASE}/webhook/lab/prestamo")
 N8N_ENTREGAR = os.environ.get("N8N_ENTREGAR", f"{N8N_BASE}/webhook/lab-entregar")
 N8N_DEVOLVER = os.environ.get("N8N_DEVOLVER", f"{N8N_BASE}/webhook/lab/devolver")
 N8N_LISTAR = os.environ.get("N8N_LISTAR", f"{N8N_BASE}/webhook/lab/listar")
+N8N_LOGIN_USUARIOS = os.environ.get(
+    "N8N_LOGIN_USUARIOS",
+    "https://n8n-lab-automation.onrender.com/webhook/login-user"
+)
 
 # =========================
 # ✅ Helpers n8n LAB
 # =========================
+
+def _login_usuario_n8n(nombre, banner_id, timeout=20):
+    payload = {
+        "nombre": (nombre or "").strip(),
+        "banner_id": (banner_id or "").strip().upper()
+    }
+
+    r = requests.post(N8N_LOGIN_USUARIOS, json=payload, timeout=timeout)
+
+    try:
+        data = r.json()
+    except Exception:
+        data = {"raw": (r.text or "")[:1000]}
+
+    return r, data
 def _response_json_or_text(resp):
     try:
         return resp.json()
@@ -404,34 +421,48 @@ def auth_admin():
             "error": "El ID Banner debe empezar con A y luego solo números ❗"
         }), 400
 
-    student = find_student(banner)
+    try:
+        r, login_data = _login_usuario_n8n(nombre, banner)
 
-    if not student:
+        if not r.ok:
+            return jsonify({
+                "ok": False,
+                "error": login_data.get("message") or login_data.get("error") or "Error validando usuario"
+            }), r.status_code
+
+        if not login_data.get("success"):
+            return jsonify({
+                "ok": False,
+                "error": login_data.get("message") or "Usuario no encontrado ❌"
+            }), 403
+
+        rol = (login_data.get("rol") or "").strip().lower()
+
+        if rol != "admin":
+            return jsonify({
+                "ok": False,
+                "error": "No tienes permisos de administrador ❌"
+            }), 403
+
+        session["role"] = "admin"
+        session["student_name"] = login_data.get("nombre", nombre)
+        session["banner_id"] = login_data.get("banner_id", banner)
+
+        return jsonify({
+            "ok": True,
+            "redirect": "/registro"
+        }), 200
+
+    except requests.exceptions.Timeout:
         return jsonify({
             "ok": False,
-            "error": "Este usuario no está registrado ❌"
-        }), 403
-
-    if banner not in ADMIN_BANNERS:
+            "error": "Timeout validando usuario en n8n"
+        }), 504
+    except Exception as e:
         return jsonify({
             "ok": False,
-            "error": "No tienes permisos de administrador ❌"
-        }), 403
-
-    if (student.get("nombre") or "").strip().lower() != nombre.lower():
-        return jsonify({
-            "ok": False,
-            "error": "El nombre no coincide con el usuario autorizado ❌"
-        }), 403
-
-    session["role"] = "admin"
-    session["student_name"] = student["nombre"]
-    session["banner_id"] = student["banner"]
-
-    return jsonify({
-    "ok": True,
-    "redirect": "/registro"
-}), 200
+            "error": f"Error en login admin: {str(e)}"
+        }), 500
 
 @app.route("/auth/student", methods=["POST"])
 def auth_student():
@@ -447,28 +478,54 @@ def auth_student():
             "error": "Faltan datos (Nombre/ID Banner) ❌"
         }), 400
 
-    student = find_student(banner)
-
-    if not student:
+    if not re.match(r"^A\d+$", banner):
         return jsonify({
             "ok": False,
-            "error": "Este estudiante no está registrado ❌"
-        }), 403
+            "error": "El ID Banner debe empezar con A y luego solo números ❗"
+        }), 400
 
-    if (student.get("nombre") or "").strip().lower() != nombre.lower():
+    try:
+        r, login_data = _login_usuario_n8n(nombre, banner)
+
+        if not r.ok:
+            return jsonify({
+                "ok": False,
+                "error": login_data.get("message") or login_data.get("error") or "Error validando usuario"
+            }), r.status_code
+
+        if not login_data.get("success"):
+            return jsonify({
+                "ok": False,
+                "error": login_data.get("message") or "Usuario no encontrado ❌"
+            }), 403
+
+        rol = (login_data.get("rol") or "").strip().lower()
+
+        if rol != "student":
+            return jsonify({
+                "ok": False,
+                "error": "Este usuario no tiene permisos de estudiante ❌"
+            }), 403
+
+        session["role"] = "student"
+        session["student_name"] = login_data.get("nombre", nombre)
+        session["banner_id"] = login_data.get("banner_id", banner)
+
+        return jsonify({
+            "ok": True,
+            "redirect": next_url or "/registro-estudiante"
+        }), 200
+
+    except requests.exceptions.Timeout:
         return jsonify({
             "ok": False,
-            "error": "El nombre no coincide con el estudiante registrado ❌"
-        }), 403
-
-    session["role"] = "student"
-    session["student_name"] = student["nombre"]
-    session["banner_id"] = student["banner"]
-
-    return jsonify({
-        "ok": True,
-        "redirect": next_url or "/registro-estudiante"
-    }), 200
+            "error": "Timeout validando usuario en n8n"
+        }), 504
+    except Exception as e:
+        return jsonify({
+            "ok": False,
+            "error": f"Error en login student: {str(e)}"
+        }), 500
 
 @app.route("/auth/logout", methods=["POST"])
 def auth_logout():
@@ -1134,6 +1191,7 @@ def speaker_redirect():
 @require_role("admin")
 def spectra_redirect():
     return redirect("/app-spectra", code=302)
+print("APP IMPORTADA OK:", app)
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
