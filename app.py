@@ -430,8 +430,11 @@ def auth_register():
     if not data:
         data = request.form.to_dict()
 
+    print("DEBUG auth_register data =", data)
+    print("DEBUG N8N_REGISTER_USUARIOS =", repr(N8N_REGISTER_USUARIOS))
+
     nombre = (data.get("nombre") or "").strip()
-    banner = (data.get("banner") or "").strip().upper()
+    banner = (data.get("banner") or data.get("banner_id") or "").strip().upper()
 
     if not nombre or not banner:
         return jsonify({
@@ -447,6 +450,9 @@ def auth_register():
 
     try:
         r, reg_data = _register_usuario_n8n(nombre, banner)
+
+        print("DEBUG register status =", r.status_code)
+        print("DEBUG register data =", reg_data)
 
         if not r.ok:
             return jsonify({
@@ -483,10 +489,10 @@ def auth_register():
     
 @app.route("/registro-alumno", methods=["GET", "POST"])
 def registro_alumno():
-    return jsonify({
-        "ok": True,
-        "message": "RUTA NUEVA DE REGISTRO FUNCIONANDO"
-    }), 200
+    if request.method == "GET":
+        return render_template("registro_alumno.html")
+
+    return auth_register()
 
 
 @app.route("/auth/admin", methods=["POST"])
