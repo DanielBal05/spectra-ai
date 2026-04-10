@@ -133,12 +133,31 @@ N8N_DEVOLVER = os.environ.get("N8N_DEVOLVER", f"{N8N_BASE}/webhook/lab/devolver"
 N8N_LISTAR = os.environ.get("N8N_LISTAR", f"{N8N_BASE}/webhook/lab/listar")
 N8N_LOGIN_USUARIOS = os.environ.get(
     "N8N_LOGIN_USUARIOS",
-    "https://n8n-lab-automation.onrender.com/webhook/login-user"
+    "https://n8n-lab-automation.onrender.com/webhook/login-user")
+N8N_REGISTER_USUARIOS = os.environ.get(
+    "N8N_REGISTER_USUARIOS",
+    "https://n8n-lab-automation.onrender.com/webhook/register-user"
 )
+
 
 # =========================
 # ✅ Helpers n8n LAB
 # =========================
+
+def _register_usuario_n8n(nombre, banner_id, timeout=20):
+    payload = {
+        "nombre": (nombre or "").strip(),
+        "banner_id": (banner_id or "").strip().upper()
+    }
+
+    r = requests.post(N8N_REGISTER_USUARIOS, json=payload, timeout=timeout)
+
+    try:
+        data = r.json()
+    except Exception:
+        data = {"raw": (r.text or "")[:1000]}
+
+    return r, data
 
 def _login_usuario_n8n(nombre, banner_id, timeout=20):
     payload = {
@@ -401,6 +420,59 @@ def debug_login():
         return render_template("login.html", next=next_url)
     except Exception:
         return Response(traceback.format_exc(), mimetype="text/plain")
+
+@app.route("/auth/register", methods=["POST"])
+def auth_register():
+    data = request.get_json(silent=True) or {}
+
+    nombre = (data.get("nombre") or "").strip()
+    banner = (data.get("banner") or "").strip().upper()
+
+    if not nombre or not banner:
+        return jsonify({
+            "ok": False,
+            "error": "Faltan datos (Nombre/ID Banner) ❌"
+        }), 400
+
+    if not re.match(r"^A\d+$", banner):
+        return jsonify({
+            "ok": False,
+            "error": "El ID Banner debe empezar con A y luego solo números ❗"
+        }), 400
+
+    try:
+        r, reg_data = _register_usuario_n8n(nombre, banner)
+
+        if not r.ok:
+            return jsonify({
+                "ok": False,
+                "error": reg_data.get("message") or reg_data.get("error") or "Error registrando usuario"
+            }), r.status_code
+
+        if not reg_data.get("ok"):
+            return jsonify({
+                "ok": False,
+                "error": reg_data.get("message") or "No se pudo registrar el usuario ❌"
+            }), 400
+
+        return jsonify({
+            "ok": True,
+            "message": reg_data.get("message") or "Usuario registrado correctamente ✅",
+            "nombre": reg_data.get("nombre", nombre),
+            "banner_id": reg_data.get("banner_id", banner),
+            "rol": reg_data.get("rol", "student")
+        }), 200
+
+    except requests.exceptions.Timeout:
+        return jsonify({
+            "ok": False,
+            "error": "Timeout registrando usuario en n8n"
+        }), 504
+    except Exception as e:
+        return jsonify({
+            "ok": False,
+            "error": f"Error en registro: {str(e)}"
+        }), 500
 
 @app.route("/auth/admin", methods=["POST"])
 def auth_admin():
