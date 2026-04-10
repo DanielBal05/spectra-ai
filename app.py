@@ -483,19 +483,10 @@ def auth_register():
     
 @app.route("/registro-alumno", methods=["GET", "POST"])
 def registro_alumno():
-    if request.method == "GET":
-        return render_template("registro_alumno.html")
-
-    try:
-        print("DEBUG entrando a POST /registro-alumno")
-        return auth_register()
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return jsonify({
-            "ok": False,
-            "error": str(e)
-        }), 500
+    return jsonify({
+        "ok": True,
+        "message": "RUTA NUEVA DE REGISTRO FUNCIONANDO"
+    }), 200
 
 
 @app.route("/auth/admin", methods=["POST"])
