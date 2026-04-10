@@ -401,7 +401,7 @@ async function registrar(){
   }
 
   try{
-    const r = await fetch("/registro-alumno", {
+    const r = await fetch("//auth/register", {
       method: "POST",
       headers: {"Content-Type": "application/json"},
       body: JSON.stringify({ nombre, banner })
