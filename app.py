@@ -426,7 +426,9 @@ def debug_login():
 
 @app.route("/auth/register", methods=["POST"])
 def auth_register():
-    data = request.get_json(silent=True) or {}
+    data = request.get_json(silent=True)
+    if not data:
+        data = request.form.to_dict()
 
     nombre = (data.get("nombre") or "").strip()
     banner = (data.get("banner") or "").strip().upper()
@@ -472,15 +474,28 @@ def auth_register():
             "error": "Timeout registrando usuario en n8n"
         }), 504
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return jsonify({
             "ok": False,
             "error": f"Error en registro: {str(e)}"
         }), 500
+    
 @app.route("/registro-alumno", methods=["GET", "POST"])
 def registro_alumno():
     if request.method == "GET":
         return render_template("registro_alumno.html")
-    return auth_register()
+
+    try:
+        print("DEBUG entrando a POST /registro-alumno")
+        return auth_register()
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            "ok": False,
+            "error": str(e)
+        }), 500
 
 
 @app.route("/auth/admin", methods=["POST"])
