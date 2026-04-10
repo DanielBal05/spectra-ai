@@ -150,7 +150,10 @@ def _register_usuario_n8n(nombre, banner_id, timeout=20):
         "banner_id": (banner_id or "").strip().upper()
     }
 
-    r = requests.post(N8N_REGISTER_USUARIOS, json=payload, timeout=timeout)
+    url = "https://n8n-lab-automation.onrender.com/webhook/register-user"
+    print("DEBUG register fixed url =", repr(url))
+
+    r = requests.post(url, json=payload, timeout=timeout)
 
     try:
         data = r.json()
