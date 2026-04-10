@@ -492,7 +492,10 @@ def registro_alumno():
     if request.method == "GET":
         return render_template("registro_alumno.html")
 
-    return auth_register()
+    return jsonify({
+        "ok": True,
+        "message": "POST /registro-alumno sí está entrando aquí"
+    }), 200
 
 
 @app.route("/auth/admin", methods=["POST"])
