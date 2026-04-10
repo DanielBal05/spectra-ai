@@ -476,6 +476,12 @@ def auth_register():
             "ok": False,
             "error": f"Error en registro: {str(e)}"
         }), 500
+@app.route("/registro-alumno", methods=["GET", "POST"])
+def registro_alumno():
+    if request.method == "GET":
+        return render_template("registro_alumno.html")
+    return auth_register()
+
 
 @app.route("/auth/admin", methods=["POST"])
 def auth_admin():
